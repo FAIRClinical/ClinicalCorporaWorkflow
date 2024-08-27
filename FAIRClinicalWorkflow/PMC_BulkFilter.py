@@ -98,8 +98,7 @@ def filter_manually(dir, title, min_date, max_date):
         # load file to ensure
         bioc = load_pmc_bioc(file_path.replace(".xml", ".json"))
         if title.lower() in bioc.documents[0].passages[0].text.lower():
-            if int(min_date) <= int(bioc.date[0:4]) <= int(max_date):
-                results.append(file_path)
+            results.append(file_path)
         elif ("subtitle" in bioc.documents[0].passages[0].infons.keys() and
               title.lower() in bioc.documents[0].passages[0].infons["subtitle"].lower()):
             if int(min_date) <= int(bioc.date[0:4]) <= int(max_date):

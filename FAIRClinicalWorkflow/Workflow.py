@@ -86,7 +86,7 @@ def process_new_archive(new_archive_path):
     output_path = new_archive_path.rstrip(".tar.gz")
     extract_archive(new_archive_path, output_path)
     full_text_folder = os.path.join(output_path, "Full-texts")
-    filter_articles(output_path, "case report", 2005, 2099)
+    filter_articles(output_path, "case report")
     get_supplementary_files(full_text_folder)
     supplementary_file_paths = [dirpath for (dirpath, dirname, filename) in os.walk(full_text_folder)]
     execute_movie_removal(full_text_folder)
@@ -95,7 +95,7 @@ def process_new_archive(new_archive_path):
 def update_existing_archive(new_archive_path):
     output_path = new_archive_path.rstrip(".tar.gz")
     extract_archive(new_archive_path, output_path)
-    filter_articles(output_path, "case report", 2005, 2099)
+    filter_articles(output_path, "case report")
 
 
 def update_local_archive_versions(archive_name, date_modified, new_archive=False):
@@ -166,48 +166,48 @@ def check_pmc_bioc_updates():
     return updates
 
 
-def log_unprocessed_supplementary_file(file, reason):
-    with open("Unprocessed Files.txt", "a", encoding="utf-8") as f_out:
+def log_unprocessed_supplementary_file(file, reason, package):
+    with open(os.path.join("Output", "Unprocessed Files.tsv"), "a", encoding="utf-8") as f_out:
         f_out.write(f"{file}\tError:{reason}\n")
 
 
 def run():
     # Debug code for supplementary material processing
-    # folders = ["030", "035", "040", "045", "050", "055", "060", "065", "070", "075", "080", "085", "090", "095",
-    #            "100", "105"]
-    # files_processed = 0
-    # successful = 0
-    # failed = 0
-    # # folders = ["105"]
-    # for folder in folders:
-    #     full_text_folder = F"D:\\Projects\\FAIRClinical\\Supplementary Files\\PMC{folder}XXXXX_supplementary"
-    #
-    #     dirs = [(dirpath, dirname, filename) for (dirpath, dirname, filename) in os.walk(full_text_folder) if
-    #             not dirname]
-    #     filepaths = []
-    #     for dir_list in dirs:
-    #         for file in dir_list[2]:
-    #             filepaths.append(os.path.join(dir_list[0], file))
-    #     for file in filepaths:
-    #         if file.endswith("_bioc.json") or file.endswith("_tables.json"):
-    #             continue
-    #         try:
-    #             files_processed += 1
-    #             pmcid = regex.search(r"PMC[0-9]*_", file)[0][:-1]
-    #             result = process_supplementary_files([file], pmcid=pmcid)
-    #             if not result:
-    #                 failed += 1
-    #                 log_unprocessed_supplementary_file(file, "Could not extract text")
-    #             else:
-    #                 successful += 1
-    #         except Exception as ex:
-    #             failed += 1
-    #             log_unprocessed_supplementary_file(file, F"An error occurred: {ex}")
-    #             if os.path.exists("temp_extracted_files"):
-    #                 shutil.rmtree("temp_extracted_files")
-    #
-    # print(F"Files processed: {files_processed}\nSuccessful: {successful}\nFailed: {failed}")
-    # sys.exit()
+    folders = ["030", "035", "040", "045", "050", "055", "060", "065", "070", "075", "080", "085", "090", "095",
+               "100", "105"]
+    files_processed = 0
+    successful = 0
+    failed = 0
+    # folders = ["105"]
+    for folder in folders:
+        full_text_folder = F"D:\\Projects\\FAIRClinical\\Supplementary Files\\PMC{folder}XXXXX_supplementary"
+
+        dirs = [(dirpath, dirname, filename) for (dirpath, dirname, filename) in os.walk(full_text_folder) if
+                not dirname]
+        filepaths = []
+        for dir_list in dirs:
+            for file in dir_list[2]:
+                filepaths.append(os.path.join(dir_list[0], file))
+        for file in filepaths:
+            if file.endswith("_bioc.json") or file.endswith("_tables.json"):
+                continue
+            try:
+                files_processed += 1
+                pmcid = regex.search(r"PMC[0-9]*_", file)[0][:-1]
+                result = process_supplementary_files([file], pmcid=pmcid)
+                if not result:
+                    failed += 1
+                    log_unprocessed_supplementary_file(file, "Could not extract text", folder)
+                else:
+                    successful += 1
+            except Exception as ex:
+                failed += 1
+                log_unprocessed_supplementary_file(file, F"An error occurred: {ex}")
+                if os.path.exists("temp_extracted_files"):
+                    shutil.rmtree("temp_extracted_files")
+
+    print(F"Files processed: {files_processed}\nSuccessful: {successful}\nFailed: {failed}")
+    sys.exit()
 
     logger.info("Checking for new archive versions...")
     updates = check_pmc_bioc_updates()
