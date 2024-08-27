@@ -89,7 +89,7 @@ def load_pmc_bioc(file_path):
     return bioc
 
 
-def filter_manually(dir, title, min_date, max_date):
+def filter_manually(dir, title):
     results = []
     for file in [x for x in os.listdir(dir) if x.endswith(".xml")]:
         file_path = os.path.join(dir, file)
@@ -101,8 +101,7 @@ def filter_manually(dir, title, min_date, max_date):
             results.append(file_path)
         elif ("subtitle" in bioc.documents[0].passages[0].infons.keys() and
               title.lower() in bioc.documents[0].passages[0].infons["subtitle"].lower()):
-            if int(min_date) <= int(bioc.date[0:4]) <= int(max_date):
-                results.append(file_path)
+            results.append(file_path)
 
     scan_bioc_files(results)
 
@@ -110,10 +109,10 @@ def filter_manually(dir, title, min_date, max_date):
 
 
 def main():
-    filter_manually(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    filter_manually(sys.argv[1], sys.argv[2])
 
 
 if __name__ == "__main__":
     # example usage
-    # python PMC_BulkFilter.py "D:\\PMC000XXXXX_json_ascii" "case report" 2000 2025
+    # python PMC_BulkFilter.py "D:\\PMC000XXXXX_json_ascii" "case report"
     main()
