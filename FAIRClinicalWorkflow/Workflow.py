@@ -1,3 +1,4 @@
+import gzip
 import logging
 import os
 import shutil
@@ -88,21 +89,22 @@ def extract_archive(archive_path, output_path):
 def process_new_archive(new_archive_path):
     # Extract archive to the same location
     output_path = new_archive_path.rstrip(".tar.gz")
-    extract_archive(new_archive_path, output_path)
+    # extract_archive(new_archive_path, output_path)
 
     # process full text articles
     full_text_folder = os.path.join(output_path, "Full-texts")
-    filter_articles(output_path, "case report")
+    # filter_articles(output_path, "case report")
 
     # process supplementary files
     supplementary_output_path = F"{output_path}_supplementary"
-    gather_supplementary_files(full_text_folder, supplementary_output_path)
-    execute_movie_removal(full_text_folder)
+    get_supplementary_files(full_text_folder)
+    standardise_supplementary_files(supplementary_output_path)
+    execute_movie_removal(supplementary_output_path)
 
 
-def gather_supplementary_files(full_text_folder: str, supplementary_output_path: str):
-    dirs = [(dirpath, dirname, filename) for (dirpath, dirname, filename) in os.walk(full_text_folder) if
-            not dirname]
+def standardise_supplementary_files(supplementary_output_path: str):
+    dirs = [(dirpath, dirname, filename) for (dirpath, dirname, filename) in
+            os.walk(supplementary_output_path) if not dirname and dirpath.endswith("Raw")]
     filepaths = []
     for dir_list in dirs:
         for file in dir_list[2]:
@@ -110,16 +112,14 @@ def gather_supplementary_files(full_text_folder: str, supplementary_output_path:
     for file in filepaths:
         if file.endswith("_bioc.json") or file.endswith("_tables.json"):
             continue
-        file_dir = os.path.join(supplementary_output_path, os.path.dirname(file))
-        if not exists(file_dir):
-            os.makedirs(file_dir)
+
         try:
-            pmcid = regex.search(r"PMC[0-9]*_", file)[0][:-1]
+            pmcid = regex.search(r"(PMC[0-9]*)[\\//]", file)[-1]
             result = process_supplementary_files([file], pmcid=pmcid)
             if not result:
-                log_unprocessed_supplementary_file(file, "Could not extract text", folder)
+                log_unprocessed_supplementary_file(file, "Could not extract text", supplementary_output_path)
         except Exception as ex:
-            log_unprocessed_supplementary_file(file, F"An error occurred: {ex}")
+            log_unprocessed_supplementary_file(file, F"An error occurred: {ex}", supplementary_output_path)
             if os.path.exists("temp_extracted_files"):
                 shutil.rmtree("temp_extracted_files")
 
@@ -189,24 +189,80 @@ def check_pmc_bioc_updates():
                     break
         # File was either updated or already up-to-date
         if archive_processed:
+            archive_final_output(os.path.join("Output", filename))
             continue
         # A new archive has been found for processing
         logger.info(F"Downloading new archive {filename}")
         # download_file(ftp, filename, "Output")
-        download_archive(ftp, filename, "Output")
+        with ftplib.FTP(ftp_server) as ftp:
+            ftp.login()
+            ftp.cwd(ftp_directory)
+            download_archive(ftp, filename, "Output")
         process_new_archive(os.path.join("Output", filename))
+        archive_final_output(os.path.join("Output", filename))
         updates = True
     return updates
 
 
-def log_unprocessed_supplementary_file(file, reason, package):
-    with open(os.path.join("Output", "Unprocessed Files.tsv"), "a", encoding="utf-8") as f_out:
+def log_unprocessed_supplementary_file(file, reason, log_path):
+    with open(os.path.join(log_path, "Unprocessed Files.tsv"), "a", encoding="utf-8") as f_out:
         f_out.write(f"{file}\tError:{reason}\n")
 
 
+def clear_empty_folders(output_path):
+    """
+    Remove empty directories in the given path recursively.
+
+    :param path: The root directory to start the search for empty directories.
+    """
+    # Walk through the directory tree from the bottom up
+    for root, dirs, files in os.walk(output_path, topdown=False):
+        # Loop over all directories in the current directory
+        for dir_name in dirs:
+            # Construct the full path to the directory
+            dir_path = os.path.join(root, dir_name)
+            try:
+                # Try to remove the directory
+                os.rmdir(dir_path)
+                print(f"Removed empty directory: {dir_path}")
+            except OSError:
+                # If the directory is not empty, it cannot be removed
+                pass
+
+
+def archive_final_output(path):
+    """
+    Compress a directory into a .tar.gz archive and remove the original directory.
+
+    :param path: The directory to compress and remove.
+    """
+
+    # Define the name of the archive files
+    archive_names = [f"{path}.tar.gz", f"{path}_supplementary.tar.gz"]
+
+    for archive_name in archive_names:
+        folder_path = archive_name.replace(".tar.gz", "")
+
+        clear_empty_folders(folder_path)
+
+        # Check if the provided path is a valid directory
+        if not os.path.isdir(folder_path):
+            print(f"The provided path '{folder_path}' is not a valid directory.")
+            return
+        try:
+            # Create a tar.gz archive from the directory
+            with tarfile.open(archive_name, "w:gz") as tar:
+                tar.add(folder_path, arcname=os.path.basename(folder_path))
+            print(f"Directory '{folder_path}' has been successfully compressed into '{archive_name}'.")
+
+            # Remove the original directory after successful compression
+            shutil.rmtree(folder_path)
+            print(f"Original directory '{folder_path}' has been removed.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
 def run():
-    # gather_supplementary_files("Output\\PMC000XXXX_json_ascii", "Output\\PMC000XXXXX_json_ascii_supplementary")
-    logger.info("Checking for new archive versions...")
     updates = check_pmc_bioc_updates()
     if updates:
         logger.info("Updates processed.")

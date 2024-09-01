@@ -102,7 +102,16 @@ def get_supp_docs(input_directory, bioc_file, is_id=False):
                 logging.info(F"{pmc_id} does not contain supplementary links.")
                 no_supp_links.append(F"{pmc_id}")
             else:
-                new_dir = input_directory + F"/{pmc_id}_supplementary" if input_directory else F"{pmc_id}_supplementary"
+                # Create output directory structure
+                file_dir = os.path.split(input_directory)[0] + "_supplementary"
+                file_dir = os.path.join(file_dir, pmc_id)
+                if not exists(file_dir):
+                    os.makedirs(file_dir)
+                if not exists(os.path.join(file_dir, "Raw")):
+                    os.makedirs(os.path.join(file_dir, "Raw"))
+                if not exists(os.path.join(file_dir, "Processed")):
+                    os.makedirs(os.path.join(file_dir, "Processed"))
+                new_dir = os.path.join(file_dir, "Raw")
                 download_supplementary_files(supp_links, new_dir, pmc_id, input_directory)
         else:
             if response.status_code == 403:
