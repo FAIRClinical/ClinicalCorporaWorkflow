@@ -157,7 +157,7 @@ def check_pmc_bioc_updates():
     :return:
     """
     current_versions = get_current_version_dates()
-    updates = False
+    archive_updated = False
     # Scan FTP address for updates using date modified
     with ftplib.FTP(ftp_server) as ftp:
         ftp.login()
@@ -181,7 +181,7 @@ def check_pmc_bioc_updates():
                     update_existing_archive(os.path.join("Output", filename))
                     update_local_archive_versions(filename, date_modified)
                     archive_processed = True
-                    updates = True
+                    archive_updated = True
                     break
                 else:
                     archive_processed = True
@@ -189,11 +189,15 @@ def check_pmc_bioc_updates():
                     break
         # File was either updated or already up-to-date
         if archive_processed:
-            if updates:
+            # check if an update was carried out
+            if archive_updated:
+                # changes were made, so archive the new directories
                 archive_final_output(os.path.join("Output", filename))
+                logger.info(F"Updated archive: {filename}")
+                archive_updated = False
             continue
         # A new archive has been found for processing
-        logger.info(F"Downloading new archive {filename}")
+        logger.info(F"Downloading new archive: {filename}")
         # download_file(ftp, filename, "Output")
         with ftplib.FTP(ftp_server) as ftp:
             ftp.login()
@@ -201,8 +205,7 @@ def check_pmc_bioc_updates():
             download_archive(ftp, filename, "Output")
         process_new_archive(os.path.join("Output", filename))
         archive_final_output(os.path.join("Output", filename))
-        updates = True
-    return updates
+        logger.info(F"Processed new archive: {filename}")
 
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
@@ -264,11 +267,7 @@ def archive_final_output(path):
 
 
 def run():
-    updates = check_pmc_bioc_updates()
-    if updates:
-        logger.info("Updates processed.")
-    else:
-        logger.info("No new updates available.")
+    check_pmc_bioc_updates()
 
 
 if __name__ == "__main__":
