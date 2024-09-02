@@ -189,7 +189,8 @@ def check_pmc_bioc_updates():
                     break
         # File was either updated or already up-to-date
         if archive_processed:
-            archive_final_output(os.path.join("Output", filename))
+            if updates:
+                archive_final_output(os.path.join("Output", filename))
             continue
         # A new archive has been found for processing
         logger.info(F"Downloading new archive {filename}")
