@@ -17,47 +17,26 @@ videos_removed = []
 
 
 def remove_movie_files(input_directory):
-    pmc = get_pmc_from_path(input_directory)
-    new_output_folder = join(split(input_directory)[0], F"{pmc}_supplementary_public")
     global videos_removed
     videos_removed = []
 
     try:
         supplementary_directories = [x for x in os.walk(input_directory)][0][1]
-        if not exists(new_output_folder):
-            os.mkdir(new_output_folder)
         for dirpath in supplementary_directories:
-
-            # Test folder containing an archived video file
-            # if "10303661" not in dirpath:
-            #     continue
-
-            # Test folder containing archived PDF
-            # if "10003408" not in dirpath:
-            #     continue
-
-            # Test folder containing archived mp4 AND pptx
-            # if "10266167" not in dirpath:
-            #     continue
-
-            for file in os.listdir(join(input_directory, dirpath)):
+            raw_path = join(join(input_directory, dirpath), "Raw")
+            for file in os.listdir(raw_path):
                 # Get file extension
                 file_extension = os.path.splitext(file)[-1].lower()
                 if any([file_extension.endswith(x) for x in archive_extensions]):
                     archived_files = process_archive(file_extension, input_directory, file,
                                                      join(input_directory, dirpath),
-                                                     join(new_output_folder, dirpath))
+                                                     join(input_directory, dirpath))
                     continue
                 # Don't copy video files
                 if any([file_extension.endswith(x) for x in video_extensions]):
-                    videos_removed.append((dirpath, pmc, file, None))
+                    videos_removed.append((dirpath, dirpath, file, None))
+                    os.remove(file)
                     continue
-                file_path = join(join(input_directory, dirpath), file)
-                new_folder = join(new_output_folder, dirpath)
-                new_file_path = join(new_folder, file)
-                if not exists(new_folder):
-                    os.mkdir(new_folder)
-                shutil.copyfile(file_path, new_file_path)
     except IOError as io:
         print(F"IO Error occurred, please check the exception and try again: {io}")
     except IndexError as ie:
@@ -158,13 +137,12 @@ def generate_video_log(videos, log_path):
 
 def copy_download_log(input_directory):
     log_directory = input_directory
-    new_log_directory = input_directory + "_public"
     pmc = get_pmc_from_path(input_directory)
-    log_path = join(log_directory, F"{pmc}_supplementary_included_PRIVATE.tsv")
-    new_log_path = join(new_log_directory, F"{pmc}_supplementary_included.tsv")
+    included_log_path = join(log_directory, F"{pmc}_supplementary_included.tsv")
+    excluded_log_path = included_log_path.replace("_included", "_excluded")
     excluded_log_entries = []
     try:
-        with open(log_path, "r", encoding="utf-8") as f_in, open(new_log_path, "w", encoding="utf-8") as f_out:
+        with open(included_log_path, "r", encoding="utf-8") as f_in, open(excluded_log_path, "w", encoding="utf-8") as f_out:
             for line in f_in.readlines():
                 folder, pmcid, url = line.split("\t")
                 url = url.strip("\n")
@@ -180,7 +158,8 @@ def copy_download_log(input_directory):
                 f_out.write(line)
     except IOError as io:
         print(F"Previous log file not found. Failed to produce the new excluded supplementary log file.")
-    generate_video_log(excluded_log_entries, new_log_directory)
+        return
+    generate_video_log(excluded_log_entries, log_directory)
 
 
 def get_pmc_from_path(path):

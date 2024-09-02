@@ -89,17 +89,18 @@ def extract_archive(archive_path, output_path):
 def process_new_archive(new_archive_path):
     # Extract archive to the same location
     output_path = new_archive_path.rstrip(".tar.gz")
-    # extract_archive(new_archive_path, output_path)
+    extract_archive(new_archive_path, output_path)
 
     # process full text articles
     full_text_folder = os.path.join(output_path, "Full-texts")
-    # filter_articles(output_path, "case report")
+    filter_articles(output_path, "case report")
 
     # process supplementary files
     supplementary_output_path = F"{output_path}_supplementary"
     get_supplementary_files(full_text_folder)
-    standardise_supplementary_files(supplementary_output_path)
     execute_movie_removal(supplementary_output_path)
+    standardise_supplementary_files(supplementary_output_path)
+
 
 
 def standardise_supplementary_files(supplementary_output_path: str):
@@ -267,6 +268,7 @@ def archive_final_output(path):
 
 
 def run():
+    process_new_archive("Output/PMC000XXXXX_json_ascii.tar.gz")
     check_pmc_bioc_updates()
 
 
