@@ -18,12 +18,9 @@ refs_log.addHandler(refs_handler)
 missing_html_files = []
 no_supp_links = []
 headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:101.0) Gecko/20100101 Firefox/101.0"}
-download_break_countdown = 1000
-no_delay = False
 
 
 def get_article_links(pmc_id):
-    random_delay()
     response = None
     try:
         response = requests.get(F"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}", headers=headers)
@@ -51,7 +48,6 @@ def log_download(log_path, downloaded_file_dir, pmc_id, link):
 
 def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir):
     try:
-        random_delay()
         file_response = requests.get(link_address, headers=headers, stream=True)
         if file_response.ok:
             try:
@@ -204,21 +200,6 @@ def process_file(input_file):
     output_problematic_logs()
 
 
-def random_delay(lower=5, upper=8):
-    global download_break_countdown, no_delay
-    if not no_delay:
-        if download_break_countdown == 0:
-            ready = input("Please change IP & check the download log. Type READY to continue")
-            while ready != "READY":
-                ready = input("type READY to continue")
-            download_break_countdown = 1000
-        else:
-            sleep(random.randint(lower, upper))
-            download_break_countdown -= 1
-    else:
-        sleep(random.randint(lower, upper))
-
-
 def load_file(input_path):
     try:
         with open(input_path, "r", encoding="utf-8") as f_in:
@@ -233,15 +214,12 @@ def load_file(input_path):
 
 
 def main():
-    global no_delay
     parser = argparse.ArgumentParser("Supplementary Downloader", description="A Python module for downloading "
                                                                              "supplementary files.")
     parser.add_argument("-b", "--bioc_files", required=False)
     parser.add_argument("-p", "--pmc_ids", required=False)
     parser.add_argument("-o", "--output", required=False)
-    parser.add_argument("-n", "--no-delay", action="store_true", default=False)
     args = parser.parse_args()
-    no_delay = args.no_delay
     input_directory = args.bioc_files
     output_directory = args.output
     input_pmcs = args.pmc_ids
