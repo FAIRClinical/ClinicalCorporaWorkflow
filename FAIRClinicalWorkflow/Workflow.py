@@ -172,7 +172,7 @@ def check_pmc_bioc_updates():
         # Check for updates to current files or brand-new ones
         for [current_file, current_file_date] in current_versions:
             if filename == current_file:
-                if current_file_date != date_modified:
+                if current_file_date < date_modified:
                     logger.info(F"Updating {filename}")
                     # An update is found for the already stored archive
                     with ftplib.FTP(ftp_server) as ftp:
@@ -243,7 +243,7 @@ def archive_final_output(path):
     """
 
     # Define the name of the archive files
-    archive_names = [f"{path}.tar.gz", f"{path}_supplementary.tar.gz"]
+    archive_names = [path, path.replace(".tar.gz", "_supplementary.tar.gz")]
 
     for archive_name in archive_names:
         folder_path = archive_name.replace(".tar.gz", "")
@@ -268,9 +268,9 @@ def archive_final_output(path):
 
 
 def run():
-    process_new_archive("Output/PMC000XXXXX_json_ascii.tar.gz")
-    check_pmc_bioc_updates()
-
+    # process_new_archive("Output/PMC000XXXXX_json_ascii.tar.gz")
+    # check_pmc_bioc_updates()
+    archive_final_output(os.path.join("Output", "PMC100XXXXX_json_ascii.tar.gz"))
 
 if __name__ == "__main__":
     run()
