@@ -62,7 +62,8 @@ def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir):
                         f_out.write(chunk)
                         f_out.flush()
                         os.fsync(f_out.fileno())
-            log_download(parent_dir, new_dir, pmc_id, link_address)
+            log_directory = F"{os.path.split(parent_dir)[0]}_supplementary"
+            log_download(log_directory, new_dir, pmc_id, link_address)
             return True
     except IOError as ioe:
         logging.error(F"Error writing data from {link_address} due to:\n{ioe}")

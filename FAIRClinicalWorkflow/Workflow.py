@@ -7,6 +7,7 @@ import tarfile
 
 import ftplib
 import re
+import time
 from datetime import datetime
 from os.path import exists
 
@@ -98,9 +99,8 @@ def process_new_archive(new_archive_path):
     # process supplementary files
     supplementary_output_path = F"{output_path}_supplementary"
     get_supplementary_files(full_text_folder)
-    execute_movie_removal(supplementary_output_path)
     standardise_supplementary_files(supplementary_output_path)
-
+    execute_movie_removal(supplementary_output_path)
 
 
 def standardise_supplementary_files(supplementary_output_path: str):
@@ -268,9 +268,11 @@ def archive_final_output(path):
 
 
 def run():
-    # process_new_archive("Output/PMC000XXXXX_json_ascii.tar.gz")
-    # check_pmc_bioc_updates()
-    archive_final_output(os.path.join("Output", "PMC100XXXXX_json_ascii.tar.gz"))
+    start = time.time()
+    check_pmc_bioc_updates()
+    end = time.time()
+    print(F"Finished in {round(end - start, 2)} seconds")
+
 
 if __name__ == "__main__":
     run()
