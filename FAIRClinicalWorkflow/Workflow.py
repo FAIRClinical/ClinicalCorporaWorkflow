@@ -115,7 +115,7 @@ def standardise_supplementary_files(supplementary_output_path: str):
             continue
 
         try:
-            pmcid = regex.search(r"(PMC[0-9]*)[\\//]", file)[-1]
+            pmcid = regex.search(r"(PMC[0-9]*_supplementary)", file).string.replace("_supplementary", "")
             result = process_supplementary_files([file], pmcid=pmcid)
             if not result:
                 log_unprocessed_supplementary_file(file, "Could not extract text", supplementary_output_path)
@@ -272,7 +272,6 @@ def run():
     check_pmc_bioc_updates()
     end = time.time()
     print(F"Finished in {round(end - start, 2)} seconds")
-
 
 if __name__ == "__main__":
     run()

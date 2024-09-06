@@ -19,36 +19,36 @@ videos_removed = []
 def remove_movie_files(input_directory):
     global videos_removed
     videos_removed = []
-
-    try:
-        supplementary_directories = [x for x in os.walk(input_directory)][0][1]
-        for dirpath in supplementary_directories:
-            raw_path = join(join(input_directory, dirpath), "Raw")
+    supplementary_directories = [x for x in os.walk(input_directory)][0][1]
+    for dirpath in supplementary_directories:
+        raw_path = join(join(input_directory, dirpath), "Raw")
+        try:
             for file in os.listdir(raw_path):
+                file_path = os.path.join(raw_path, file)
                 # Get file extension
                 file_extension = os.path.splitext(file)[-1].lower()
                 if any([file_extension.endswith(x) for x in archive_extensions]):
                     archived_files = process_archive(file_extension, input_directory, file,
                                                      join(input_directory, dirpath),
-                                                     join(input_directory, dirpath))
+                                                     join(input_directory, raw_path))
                     continue
                 # Don't copy video files
                 if any([file_extension.endswith(x) for x in video_extensions]):
                     videos_removed.append((dirpath, dirpath, file, None))
-                    os.remove(file)
+                    os.remove(file_path)
                     continue
-    except IOError as io:
-        print(F"IO Error occurred, please check the exception and try again: {io}")
-    except IndexError as ie:
-        print(F"No supplementary folders identified. Please check your input directory exists and contains "
-              F"supplementary folders")
-    except Exception as ex:
-        print(F"Unexpected error occurred, please forward this to Thomas: {ex}")
+        except IOError as io:
+            print(F"IO Error occurred, please check the exception and try again: {io}")
+        except IndexError as ie:
+            print(F"No supplementary folders identified. Please check your input directory exists and contains "
+                  F"supplementary folders")
+        except Exception as ex:
+            print(F"Unexpected error occurred, please forward this to a member of the FAIRClinical project: {ex}")
 
 
 def process_archive(file_extension, root, file, folder_path, new_output_folder):
     archive_contents = []
-    archive_path = os.path.join(root, join(folder_path, file))
+    archive_path = join(new_output_folder, file)
     if file_extension in zip_extensions:
         archive_contents = search_zip(archive_path)
         if archive_contents:
@@ -132,17 +132,17 @@ def generate_video_log(videos, log_path):
                     elif archive == file_or_archive and archived_file:
                         f_out.write(F"{pmc_dir}\t{url}\t{archived_file}\n")
             else:
-                f_out.write(F"{pmc_dir}\t{url}\n")
+                f_out.write(F"{pmc}\t{url}\n")
 
 
 def copy_download_log(input_directory):
     log_directory = input_directory
     pmc = get_pmc_from_path(input_directory)
-    included_log_path = join(log_directory, F"{pmc}_supplementary_included.tsv")
-    excluded_log_path = included_log_path.replace("_included", "_excluded")
+    download_log_path = join(log_directory, F"download_log.tsv")
+    included_log_path = download_log_path.replace("download_log", F"{pmc}_supplementary_included")
     excluded_log_entries = []
     try:
-        with open(included_log_path, "r", encoding="utf-8") as f_in, open(excluded_log_path, "w", encoding="utf-8") as f_out:
+        with open(download_log_path, "r", encoding="utf-8") as f_in, open(included_log_path, "w", encoding="utf-8") as included_out:
             for line in f_in.readlines():
                 folder, pmcid, url = line.split("\t")
                 url = url.strip("\n")
@@ -150,14 +150,14 @@ def copy_download_log(input_directory):
                 #  is file an archive that was excluded entirely?
                 if file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
                             if not archived_file]:
-                    excluded_log_entries.append((pmc, url, None))
+                    excluded_log_entries.append((pmcid, url, None))
                     continue
                 # is file an archive that has one or more contained files excluded?
                 elif file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed if archived_file]:
-                    excluded_log_entries.append((pmc, url, file))
-                f_out.write(line)
+                    excluded_log_entries.append((pmcid, url, file))
+                included_out.write(line)
     except IOError as io:
-        print(F"Previous log file not found. Failed to produce the new excluded supplementary log file.")
+        print(F"Download log file not found. Failed to produce the new excluded supplementary log file.")
         return
     generate_video_log(excluded_log_entries, log_directory)
 

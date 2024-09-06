@@ -4,6 +4,7 @@ import random
 import re
 import sys
 from os.path import isfile, join, exists
+from pathlib import Path
 from time import sleep
 import requests
 from bioc import biocjson
@@ -43,7 +44,7 @@ def get_formatted_pmcid(bioc_file, is_id=False):
 def log_download(log_path, downloaded_file_dir, pmc_id, link):
     log_path = os.path.join(log_path, "download_log.tsv")
     with open(log_path, "a", encoding="utf-8") as f_out:
-        f_out.write(F"{os.path.split(downloaded_file_dir)[-1]}\t{pmc_id}\t{link}\n")
+        f_out.write(F"{Path(downloaded_file_dir).parent.parent}\t{pmc_id}\t{link}\n")
 
 
 def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir):
@@ -101,7 +102,7 @@ def get_supp_docs(input_directory, bioc_file, is_id=False):
             else:
                 # Create output directory structure
                 file_dir = os.path.split(input_directory)[0] + "_supplementary"
-                file_dir = os.path.join(file_dir, pmc_id)
+                file_dir = os.path.join(file_dir, pmc_id + "_supplementary")
                 if not exists(file_dir):
                     os.makedirs(file_dir)
                 if not exists(os.path.join(file_dir, "Raw")):

@@ -289,6 +289,7 @@ def process_word_document(file):
         process_word_document(file_path)
     """
     tables, paragraphs = [], []
+    output_path = file.replace("Raw", "Supplementary")
     # Check if the file has a ".doc" or ".docx" extension
     if file.lower().endswith(".doc") or file.lower().endswith(".docx"):
         try:
@@ -316,13 +317,13 @@ def process_word_document(file):
 
     # Save tables as a JSON file
     if tables:
-        with open(F"{file}_tables_bioc.json", "w+", encoding="utf-8") as f_out:
+        with open(F"{output_path}_tables_bioc.json", "w+", encoding="utf-8") as f_out:
             json.dump(get_tables_bioc(tables), f_out)
 
 
     # Save paragraphs as a JSON file
     if paragraphs:
-        with open(F"{file}_bioc.json", "w+", encoding="utf-8") as f_out:
+        with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
             json.dump(get_text_bioc(paragraphs), f_out)
 
     if not paragraphs and not tables:
