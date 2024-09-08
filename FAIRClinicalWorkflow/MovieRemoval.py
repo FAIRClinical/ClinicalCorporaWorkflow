@@ -30,7 +30,7 @@ def remove_movie_files(input_directory):
                 if any([file_extension.endswith(x) for x in archive_extensions]):
                     archived_files = process_archive(file_extension, input_directory, file,
                                                      join(input_directory, dirpath),
-                                                     join(input_directory, raw_path))
+                                                     raw_path.replace("Raw", "Processed"))
                     continue
                 # Don't copy video files
                 if any([file_extension.endswith(x) for x in video_extensions]):
