@@ -3,6 +3,7 @@ import os
 import random
 import re
 import sys
+import time
 from os.path import isfile, join, exists
 from pathlib import Path
 from time import sleep
@@ -87,6 +88,7 @@ def download_supplementary_files(supp_links, new_dir, pmc_id, parent_dir):
         link_address = link.attrib['href']
         if "www." not in link_address and "http" not in link_address:
             link_address = F"https://www.ncbi.nlm.nih.gov{link.attrib['href']}"
+        time.sleep(2)
         file_response = download_supplementary_file(link_address, new_dir, pmc_id, parent_dir)
 
 

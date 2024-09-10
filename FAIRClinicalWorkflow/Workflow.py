@@ -13,7 +13,7 @@ from os.path import exists
 
 import regex
 
-from FAIRClinicalWorkflow.MovieRemoval import execute_movie_removal
+from FAIRClinicalWorkflow.MovieRemoval import execute_movie_removal, video_extensions
 from FAIRClinicalWorkflow.PMC_BulkFilter import filter_manually as filter_articles
 from FAIRClinicalWorkflow.SupplementaryDownloader import process_directory as get_supplementary_files
 from AC.supplementary_processor import process_supplementary_files
@@ -111,9 +111,8 @@ def standardise_supplementary_files(supplementary_output_path: str):
         for file in dir_list[2]:
             filepaths.append(os.path.join(dir_list[0], file))
     for file in filepaths:
-        if file.endswith("_bioc.json") or file.endswith("_tables.json"):
+        if file.endswith("_bioc.json") or file.endswith("_tables.json") or any([file.lower().endswith(x) for x in video_extensions]):
             continue
-
         try:
             pmcid = regex.search(r"(PMC[0-9]*_supplementary)", file).string.replace("_supplementary", "")
             result = process_supplementary_files([file], pmcid=pmcid)
@@ -210,7 +209,7 @@ def check_pmc_bioc_updates():
 
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
-    with open(os.path.join(log_path, "Unprocessed Files.tsv"), "a", encoding="utf-8") as f_out:
+    with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
         f_out.write(f"{file}\tError:{reason}\n")
 
 
@@ -268,6 +267,7 @@ def archive_final_output(path):
 
 
 def run():
+    # process_new_archive("Output\\PMC000XXXXX_json_ascii.tar.gz")
     start = time.time()
     check_pmc_bioc_updates()
     end = time.time()

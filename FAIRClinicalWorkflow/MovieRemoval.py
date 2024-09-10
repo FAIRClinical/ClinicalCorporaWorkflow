@@ -22,8 +22,8 @@ def remove_movie_files(input_directory):
     supplementary_directories = [x for x in os.walk(input_directory)][0][1]
     for dirpath in supplementary_directories:
         raw_path = join(join(input_directory, dirpath), "Raw")
-        try:
-            for file in os.listdir(raw_path):
+        for file in os.listdir(raw_path):
+            try:
                 file_path = os.path.join(raw_path, file)
                 # Get file extension
                 file_extension = os.path.splitext(file)[-1].lower()
@@ -35,20 +35,24 @@ def remove_movie_files(input_directory):
                 # Don't copy video files
                 if any([file_extension.endswith(x) for x in video_extensions]):
                     videos_removed.append((dirpath, dirpath, file, None))
+                    # always remove video files
                     os.remove(file_path)
                     continue
-        except IOError as io:
-            print(F"IO Error occurred, please check the exception and try again: {io}")
-        except IndexError as ie:
-            print(F"No supplementary folders identified. Please check your input directory exists and contains "
-                  F"supplementary folders")
-        except Exception as ex:
-            print(F"Unexpected error occurred, please forward this to a member of the FAIRClinical project: {ex}")
+            except IOError as io:
+                print(F"IO Error occurred, please check the exception and try again: {io}")
+            except IndexError as ie:
+                print(F"No supplementary folders identified. Please check your input directory exists and contains "
+                      F"supplementary folders")
+            except zipfile.BadZipfile as bz:
+                print(F"Bad zip file occurred: {bz}.")
+                log_unprocessed_supplementary_file(file, bz, input_directory)
+            except Exception as ex:
+                print(F"Unexpected error occurred, please forward this to a member of the FAIRClinical project: {ex}")
 
 
 def process_archive(file_extension, root, file, folder_path, new_output_folder):
     archive_contents = []
-    archive_path = join(new_output_folder, file)
+    archive_path = join(new_output_folder.replace("Processed", "Raw"), file)
     if file_extension in zip_extensions:
         archive_contents = search_zip(archive_path)
         if archive_contents:
@@ -142,7 +146,8 @@ def copy_download_log(input_directory):
     included_log_path = download_log_path.replace("download_log", F"{pmc}_supplementary_included")
     excluded_log_entries = []
     try:
-        with open(download_log_path, "r", encoding="utf-8") as f_in, open(included_log_path, "w", encoding="utf-8") as included_out:
+        with open(download_log_path, "r", encoding="utf-8") as f_in, open(included_log_path, "w",
+                                                                          encoding="utf-8") as included_out:
             for line in f_in.readlines():
                 folder, pmcid, url = line.split("\t")
                 url = url.strip("\n")
@@ -153,18 +158,26 @@ def copy_download_log(input_directory):
                     excluded_log_entries.append((pmcid, url, None))
                     continue
                 # is file an archive that has one or more contained files excluded?
-                elif file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed if archived_file]:
+                elif file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
+                              if archived_file]:
                     excluded_log_entries.append((pmcid, url, file))
-                included_out.write(line)
+                included_out.write(F"{pmcid}_supplementary\t{pmcid}\t{url}\n")
     except IOError as io:
         print(F"Download log file not found. Failed to produce the new excluded supplementary log file.")
         return
     generate_video_log(excluded_log_entries, log_directory)
+    # remove the download log
+    os.remove(download_log_path)
 
 
 def get_pmc_from_path(path):
     pmc = path[path.find("PMC"):path.find("_")]
     return pmc
+
+
+def log_unprocessed_supplementary_file(file, reason, log_path):
+    with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
+        f_out.write(f"{file}\tError:{reason}\n")
 
 
 def execute_movie_removal(input_directory):
