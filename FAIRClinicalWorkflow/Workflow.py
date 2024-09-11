@@ -111,7 +111,8 @@ def standardise_supplementary_files(supplementary_output_path: str):
         for file in dir_list[2]:
             filepaths.append(os.path.join(dir_list[0], file))
     for file in filepaths:
-        if file.endswith("_bioc.json") or file.endswith("_tables.json") or any([file.lower().endswith(x) for x in video_extensions]):
+        if file.endswith("_bioc.json") or file.endswith("_tables.json") or any(
+                [file.lower().endswith(x) for x in video_extensions]):
             continue
         try:
             pmcid = regex.search(r"(PMC[0-9]*_supplementary)", file).string.replace("_supplementary", "")
@@ -205,12 +206,40 @@ def check_pmc_bioc_updates():
             download_archive(ftp, filename, "Output")
         process_new_archive(os.path.join("Output", filename))
         archive_final_output(os.path.join("Output", filename))
+        update_local_archive_versions(filename, date_modified, True)
         logger.info(F"Processed new archive: {filename}")
 
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
     with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
         f_out.write(f"{file}\tError:{reason}\n")
+
+
+def clear_unwanted_articles(input_dir):
+    # Define the path for the 'extra' folder
+    extra_dir = os.path.join("Output", os.path.split(input_dir)[-1] + "_unwanted_articles")
+
+    # Create the 'extra' directory if it doesn't exist
+    if not os.path.exists(extra_dir):
+        os.makedirs(extra_dir)
+
+    # Iterate over the contents of the input directory
+    for item in os.listdir(input_dir):
+        item_path = os.path.join(input_dir, item)
+
+        # Check if it's a .json file or a directory
+        if os.path.isfile(item_path) and item.endswith('.json'):
+            # Move JSON files to the 'extra' folder
+            shutil.move(item_path, os.path.join(extra_dir, item))
+        elif os.path.isdir(item_path) and "Full-texts" not in item:
+            # Move directories
+            shutil.move(item_path, os.path.join(extra_dir, item))
+
+    for item in os.listdir(os.join(input_dir, "Full-texts")):
+        item_path = os.path.join(input_dir, item)
+        shutil.move(item_path, os.path.join(input_dir, item))
+
+    print(f"All unwanted articles moved to: {extra_dir}")
 
 
 def clear_empty_folders(output_path):
@@ -244,9 +273,11 @@ def archive_final_output(path):
     # Define the name of the archive files
     archive_names = [path, path.replace(".tar.gz", "_supplementary.tar.gz")]
 
+    # Move the unwanted articles to a separate folder
+    clear_unwanted_articles(path.replace(".tar.gz", ""))
+
     for archive_name in archive_names:
         folder_path = archive_name.replace(".tar.gz", "")
-
         clear_empty_folders(folder_path)
 
         # Check if the provided path is a valid directory
@@ -267,11 +298,11 @@ def archive_final_output(path):
 
 
 def run():
-    # process_new_archive("Output\\PMC000XXXXX_json_ascii.tar.gz")
-    start = time.time()
+    # start = time.time()
     check_pmc_bioc_updates()
-    end = time.time()
-    print(F"Finished in {round(end - start, 2)} seconds")
+    # end = time.time()
+    # print(F"Finished in {round(end - start, 2)} seconds")
+
 
 if __name__ == "__main__":
     run()

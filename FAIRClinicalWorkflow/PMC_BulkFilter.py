@@ -14,12 +14,12 @@ def generate_title_list(dir, search_str):
             article_title_list.append((article.documents[0].id, article.documents[0].passages[0].text,
                                        article.documents[0].passages[0].infons["subtitle"]
                                        if "subtitle" in article.documents[0].passages[0].infons.keys() else ""))
-    with open(os.path.join(os.path.split(dir)[0], "BulkSearch_Titles.tsv"), "w", encoding="utf-8") as f_out:
+    with open(os.path.join(os.path.split(dir)[0], F"{pathlib.Path(dir).parent.parent}_Titles.tsv"), "w", encoding="utf-8") as f_out:
         for id, title, subtitle in article_title_list:
             if search_str.lower() in title.lower():
-                f_out.write(F"{id}\t{title}\n")
+                f_out.write(F"PMC{id}\t{title}\n")
             else:
-                f_out.write(F"{id}\t{title}\t{subtitle}\n")
+                f_out.write(F"PMC{id}\t{title}\t{subtitle}\n")
 
 
 def scan_bioc_files(results):
