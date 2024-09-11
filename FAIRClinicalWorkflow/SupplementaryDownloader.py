@@ -12,6 +12,8 @@ from bioc import biocjson
 from lxml import etree
 import logging
 
+from FAIRClinicalWorkflow.MovieRemoval import video_extensions
+
 refs_log = logging.getLogger("ReferenceLogger")
 refs_handler = logging.FileHandler("FailedSuppLinks.log")
 refs_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
@@ -88,7 +90,11 @@ def download_supplementary_files(supp_links, new_dir, pmc_id, parent_dir):
         link_address = link.attrib['href']
         if "www." not in link_address and "http" not in link_address:
             link_address = F"https://www.ncbi.nlm.nih.gov{link.attrib['href']}"
-        time.sleep(2)
+        if any([link_address.endswith(x) for x in video_extensions]):
+            log_directory = F"{os.path.split(parent_dir)[0]}_supplementary"
+            log_download(log_directory, new_dir, pmc_id, link_address)
+            continue
+        time.sleep(random.random() * 10)
         file_response = download_supplementary_file(link_address, new_dir, pmc_id, parent_dir)
 
 
