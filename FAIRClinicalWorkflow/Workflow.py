@@ -103,6 +103,26 @@ def process_new_archive(new_archive_path):
     execute_movie_removal(supplementary_output_path)
 
 
+def onerror(func, path, exc_info):
+    """
+    Error handler for ``shutil.rmtree``.
+
+    If the error is due to an access error (read only file)
+    it attempts to add write permission and then retries.
+
+    If the error is for another reason it re-raises the error.
+
+    Usage : ``shutil.rmtree(path, onerror=onerror)``
+    """
+    import stat
+    # Is the error an access error?
+    if not os.access(path, os.W_OK):
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    else:
+        raise
+
+
 def standardise_supplementary_files(supplementary_output_path: str):
     dirs = [(dirpath, dirname, filename) for (dirpath, dirname, filename) in
             os.walk(supplementary_output_path) if not dirname and dirpath.endswith("Raw")]
@@ -121,8 +141,11 @@ def standardise_supplementary_files(supplementary_output_path: str):
                 log_unprocessed_supplementary_file(file, "Could not extract text", supplementary_output_path)
         except Exception as ex:
             log_unprocessed_supplementary_file(file, F"An error occurred: {ex}", supplementary_output_path)
-            if os.path.exists("temp_extracted_files"):
-                shutil.rmtree("temp_extracted_files")
+            try:
+                if os.path.exists("temp_extracted_files"):
+                    shutil.rmtree("temp_extracted_files",ignore_errors=False, oneerror=onerror)
+            except PermissionError as pe:
+                print(F"Unable to remove the temp folder's contents due to a permission error: {pe}")
 
 
 def update_existing_archive(new_archive_path):
@@ -298,10 +321,10 @@ def archive_final_output(path):
 
 
 def run():
-    # start = time.time()
+    start = time.time()
     check_pmc_bioc_updates()
-    # end = time.time()
-    # print(F"Finished in {round(end - start, 2)} seconds")
+    end = time.time()
+    print(F"Finished in {round(end - start, 2)} seconds")
 
 
 if __name__ == "__main__":
