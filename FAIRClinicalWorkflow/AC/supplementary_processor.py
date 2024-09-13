@@ -1,5 +1,6 @@
 import json
 import os.path
+import secrets
 import sys
 import tarfile
 import zipfile
@@ -314,10 +315,10 @@ def __extract_powerpoint_data(locations=None, file=None):
 
 
 def process_and_update_zip(archive_path, filenames):
-    # Temporary directory to extract files
-    temp_dir = 'temp_extracted_files'
+    # Unique temp subdirectory for this archive
+    temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
 
-    # Create a temporary directory
+    # Create the unique subdirectory
     os.makedirs(temp_dir, exist_ok=True)
 
     success = False
@@ -349,10 +350,10 @@ def process_and_update_zip(archive_path, filenames):
 
 
 def process_and_update_tar(archive_path, filenames):
-    # Temporary directory to extract files
-    temp_dir = 'temp_extracted_files'
+    # Unique temp subdirectory for this archive
+    temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
 
-    # Create a temporary directory
+    # Create the unique subdirectory
     os.makedirs(temp_dir, exist_ok=True)
 
     success = False

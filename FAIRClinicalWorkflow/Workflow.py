@@ -10,6 +10,7 @@ import re
 import time
 from datetime import datetime
 from os.path import exists
+from pathlib import Path
 
 import regex
 
@@ -143,7 +144,7 @@ def standardise_supplementary_files(supplementary_output_path: str):
             log_unprocessed_supplementary_file(file, F"An error occurred: {ex}", supplementary_output_path)
             try:
                 if os.path.exists("temp_extracted_files"):
-                    shutil.rmtree("temp_extracted_files",ignore_errors=False, oneerror=onerror)
+                    shutil.rmtree("temp_extracted_files", ignore_errors=False, onerror=onerror)
             except PermissionError as pe:
                 print(F"Unable to remove the temp folder's contents due to a permission error: {pe}")
 
@@ -257,10 +258,12 @@ def clear_unwanted_articles(input_dir):
         elif os.path.isdir(item_path) and "Full-texts" not in item:
             # Move directories
             shutil.move(item_path, os.path.join(extra_dir, item))
-
-    for item in os.listdir(os.join(input_dir, "Full-texts")):
+    input_dir = os.path.join(input_dir, "Full-texts")
+    parent_dir = Path(input_dir).parent
+    for item in os.listdir(input_dir):
         item_path = os.path.join(input_dir, item)
-        shutil.move(item_path, os.path.join(input_dir, item))
+        shutil.move(item_path, os.path.join(parent_dir, item))
+    os.removedirs(input_dir)
 
     print(f"All unwanted articles moved to: {extra_dir}")
 
@@ -321,10 +324,7 @@ def archive_final_output(path):
 
 
 def run():
-    start = time.time()
     check_pmc_bioc_updates()
-    end = time.time()
-    print(F"Finished in {round(end - start, 2)} seconds")
 
 
 if __name__ == "__main__":
