@@ -263,7 +263,7 @@ def clear_unwanted_articles(input_dir):
     for item in os.listdir(input_dir):
         item_path = os.path.join(input_dir, item)
         shutil.move(item_path, os.path.join(parent_dir, item))
-    os.removedirs(input_dir)
+    os.rmdir(input_dir)
 
     print(f"All unwanted articles moved to: {extra_dir}")
 
