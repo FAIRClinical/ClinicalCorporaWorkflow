@@ -101,7 +101,6 @@ def process_new_archive(new_archive_path):
     supplementary_output_path = F"{output_path}_supplementary"
     get_supplementary_files(full_text_folder)
     standardise_supplementary_files(supplementary_output_path)
-    execute_movie_removal(supplementary_output_path)
 
 
 def onerror(func, path, exc_info):
@@ -136,10 +135,14 @@ def standardise_supplementary_files(supplementary_output_path: str):
                 [file.lower().endswith(x) for x in video_extensions]):
             continue
         try:
-            pmcid = regex.search(r"(PMC[0-9]*_supplementary)", file).string.replace("_supplementary", "")
-            result = process_supplementary_files([file], pmcid=pmcid)
-            if not result:
-                log_unprocessed_supplementary_file(file, "Could not extract text", supplementary_output_path)
+            pmcid = regex.search(r"(PMC[0-9]*_supplementary)", file)[0].replace("_supplementary", "")
+            success, failed_files = process_supplementary_files([file], pmcid=pmcid)
+            if not success:
+                if failed_files:
+                    for failed_file in failed_files:
+                        log_unprocessed_supplementary_file(F"{file}\t{failed_file}", "Failed to identify extractable text", supplementary_output_path)
+                else:
+                    log_unprocessed_supplementary_file(file, "Failed to identify extractable text", supplementary_output_path)
         except Exception as ex:
             log_unprocessed_supplementary_file(file, F"An error occurred: {ex}", supplementary_output_path)
             try:
@@ -236,7 +239,7 @@ def check_pmc_bioc_updates():
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
     with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
-        f_out.write(f"{Path(*Path(file).parts[2:])}\tError:{reason}\n")
+        f_out.write(f"{Path(*Path(file).parts[2:])}\t{reason}\n")
 
 
 def clear_unwanted_articles(input_dir):

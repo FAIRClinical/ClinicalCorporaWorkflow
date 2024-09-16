@@ -23,7 +23,7 @@ from FAIRClinicalWorkflow.powerpoint_extractor import get_powerpoint_text
 word_extensions = [".doc", ".docx"]
 spreadsheet_extensions = [".csv", ".xls", ".xlsx", ".tsv"]
 image_extensions = [".jpg", ".png", ".jpeg", '.tif', '.tiff']
-supplementary_types = word_extensions + spreadsheet_extensions + image_extensions + [".pdf"]
+supplementary_types = word_extensions + spreadsheet_extensions + image_extensions + [".pdf", ".pptx"]
 model_list = []
 
 
@@ -322,6 +322,7 @@ def process_and_update_zip(archive_path, filenames):
     os.makedirs(temp_dir, exist_ok=True)
 
     success = False
+    failed_files = []
 
     # Open the zip file
     with zipfile.ZipFile(archive_path, 'r') as zip_ref:
@@ -341,12 +342,14 @@ def process_and_update_zip(archive_path, filenames):
                                                                                              'a') as zip_write:
                             zip_write.writestr(file_path + new_result_file, f_in.read())
                         success = True
+            else:
+                failed_files.append(filename)
 
     # Cleanup: Remove the temporary directory and extracted files
     for filename in os.listdir(temp_dir):
         os.remove(os.path.join(temp_dir, filename))
     os.rmdir(temp_dir)
-    return success
+    return success, failed_files
 
 
 def process_and_update_tar(archive_path, filenames):
@@ -357,6 +360,8 @@ def process_and_update_tar(archive_path, filenames):
     os.makedirs(temp_dir, exist_ok=True)
 
     success = False
+
+    failed_files = []
 
     # Open the zip file
     with tarfile.TarFile(archive_path, 'r') as tar_ref:
@@ -376,12 +381,14 @@ def process_and_update_tar(archive_path, filenames):
                                                                                              'a') as tar_write:
                             tar_write.add(file_path + new_result_file)
                             success = True
+            else:
+                failed_files.append(filename)
 
     # Cleanup: Remove the temporary directory and extracted files
     for filename in filenames:
         os.remove(os.path.join(temp_dir, filename))
     os.rmdir(temp_dir)
-    return success
+    return success, failed_files
 
 
 def process_archive_file(locations=None, file=None):
@@ -391,7 +398,7 @@ def process_archive_file(locations=None, file=None):
     :param file:
     :return:
     """
-    success = False
+    success, failed_files = False, []
     if locations:
         pass
     elif file:
@@ -402,13 +409,19 @@ def process_archive_file(locations=None, file=None):
             extensions = search_zip(file)
             processable_files = [extensions[y] for y in extensions.keys() if y in supplementary_types]
             if processable_files:
-                success = process_and_update_zip(file, processable_files)
+                success, failed_files = process_and_update_zip(file, processable_files)
+            else:
+                print(F"Removed: {file}")
+                os.remove(file)
         elif file_extension in tar_extensions or file_extension in gzip_extensions:
             extensions = search_tar(file)
             processable_files = [extensions[y] for y in extensions.keys() if y in supplementary_types]
             if processable_files:
-                success = process_and_update_tar(file, processable_files)
-    return success
+                success, failed_files = process_and_update_tar(file, processable_files)
+            else:
+                print(F"Removed: {file}")
+                os.remove(file)
+    return success, failed_files
 
 def process_supplementary_files(supplementary_files, output_format='json', pmcid=None):
     """
@@ -417,7 +430,7 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
     Args:
         supplementary_files (list): List of file paths
     """
-    success = False
+    success, failed_files = False, []
     for file in supplementary_files:
         if not os.path.exists(file) or os.path.isdir(file):
             success = False
@@ -442,8 +455,8 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
             success = __extract_image_data(file=file, pmcid=pmcid)
 
         elif [1 for x in archive_extensions if file.lower().endswith(x)]:
-            success = process_archive_file(file=file)
-    return success
+            success, failed_files = process_archive_file(file=file)
+    return success, failed_files
 
 
 def generate_file_report(input_directory):
