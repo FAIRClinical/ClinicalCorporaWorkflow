@@ -5,6 +5,8 @@ import platform
 import subprocess
 from os.path import join
 import logging
+from pathlib import Path
+
 from docx import Document
 
 logging.basicConfig(filename="WordExtractor.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %("
@@ -176,7 +178,7 @@ def get_tables_bioc(tables):
         "documents": [
             {
                 "id": 1,
-                "inputfile": filename,
+                "inputfile": Path(*Path(filename).parts[2:]),
                 "infons": {},
                 "passages": [BioCTable(filename, i + 1, x).__dict__ for i, x in enumerate(tables)],
                 "annotations": [],
@@ -211,7 +213,7 @@ def get_text_bioc(paragraphs):
         "documents": [
             {
                 "id": 1,
-                "inputfile": filename,
+                "inputfile": Path(*Path(filename).parts[2:]),
                 "infons": {},
                 "passages": [BioCText(filename, paragraphs).__dict__],
                 "annotations": [],

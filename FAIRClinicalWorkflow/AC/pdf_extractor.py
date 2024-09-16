@@ -4,6 +4,7 @@ import json
 import os
 from copy import deepcopy
 from os.path import join
+from pathlib import Path
 
 # import PyPDF2
 import pandas
@@ -275,7 +276,7 @@ def get_text_bioc(parsed_texts, filename):
         "documents": [
             {
                 "id": 1,
-                "inputfile": filename,
+                "inputfile": Path(*Path(filename).parts[2:]),
                 "infons": {},
                 "passages": [BioCText(replace_unicode(x)).__dict__ for x in [y for y in parsed_texts]],
                 "annotations": [],
