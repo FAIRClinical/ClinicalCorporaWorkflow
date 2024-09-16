@@ -5,6 +5,7 @@ import sys
 import tarfile
 import zipfile
 from os.path import join, exists, split
+from pathlib import Path
 
 video_extensions = [".mp4", ".mov", ".avi", ".wmv", ".webm", ".flv", ".mpg", ".movi", ".m4v", ".3gp"]
 zip_extensions = [".zip", ".7z", ".rar", ".zlib", ".7-zip", ".pzip", ".xz"]
@@ -177,7 +178,7 @@ def get_pmc_from_path(path):
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
     with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
-        f_out.write(f"{file}\tError:{reason}\n")
+        f_out.write(f"{Path(*Path(file).parts[2:])}\tError:{reason}\n")
 
 
 def execute_movie_removal(input_directory):
