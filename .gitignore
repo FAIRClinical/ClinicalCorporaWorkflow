@@ -1,0 +1,4 @@
+/FAIRClinicalWorkflow/Output/
+/FAIRClinicalWorkflow/file_versions.tsv
+*.tsv
+*.log
