@@ -3,6 +3,7 @@
 
 from datetime import datetime
 from operator import itemgetter
+from pathlib import Path
 
 import cv2
 import pytesseract
@@ -275,7 +276,7 @@ class TableImage:
         if "title" not in table:
             print("no title")
         table_dict = {
-            "inputfile": self.file_name,
+            "inputfile": str(Path(*Path(self.file_name).parts[2:])),
             "id": self.tableIdentifier,
             "infons": {},
             "passages": [

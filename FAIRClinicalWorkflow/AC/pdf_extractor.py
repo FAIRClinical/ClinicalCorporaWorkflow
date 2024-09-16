@@ -200,7 +200,7 @@ def get_tables_bioc(tables, filename):
         "documents": [
             {
                 "id": 1,
-                "inputfile": filename,
+                "inputfile": str(Path(*Path(filename).parts[2:])),
                 "infons": {},
                 "passages": [BioCTable(i + 1, x).__dict__ for i, x in enumerate(tables)],
                 "annotations": [],
@@ -276,7 +276,7 @@ def get_text_bioc(parsed_texts, filename):
         "documents": [
             {
                 "id": 1,
-                "inputfile": Path(*Path(filename).parts[2:]),
+                "inputfile": str(Path(*Path(filename).parts[2:])),
                 "infons": {},
                 "passages": [BioCText(replace_unicode(x)).__dict__ for x in [y for y in parsed_texts]],
                 "annotations": [],

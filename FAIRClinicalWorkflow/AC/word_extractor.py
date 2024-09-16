@@ -178,7 +178,7 @@ def get_tables_bioc(tables):
         "documents": [
             {
                 "id": 1,
-                "inputfile": Path(*Path(filename).parts[2:]),
+                "inputfile": str(Path(*Path(filename).parts[2:])),
                 "infons": {},
                 "passages": [BioCTable(filename, i + 1, x).__dict__ for i, x in enumerate(tables)],
                 "annotations": [],
@@ -213,7 +213,7 @@ def get_text_bioc(paragraphs):
         "documents": [
             {
                 "id": 1,
-                "inputfile": Path(*Path(filename).parts[2:]),
+                "inputfile": str(Path(*Path(filename).parts[2:])),
                 "infons": {},
                 "passages": [BioCText(filename, paragraphs).__dict__],
                 "annotations": [],
@@ -291,7 +291,7 @@ def process_word_document(file):
         process_word_document(file_path)
     """
     tables, paragraphs = [], []
-    output_path = file.replace("Raw", "Supplementary")
+    output_path = file.replace("Raw", "Processed")
     # Check if the file has a ".doc" or ".docx" extension
     if file.lower().endswith(".doc") or file.lower().endswith(".docx"):
         try:
