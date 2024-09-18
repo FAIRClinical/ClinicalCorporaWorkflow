@@ -176,10 +176,13 @@ def __extract_pdf_data(locations=None, file=None):
                 if tables:
                     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w", encoding="utf-8") as tables_out:
                         json.dump(tables, tables_out, indent=4)
+                text, images, out_meta, tables = None, None, None, None
                 return True
             else:
+                text, images, out_meta, tables = None, None, None, None
                 return False
         except Exception as ex:
+            text, images, out_meta, tables = None, None, None, None
             return False
 
 

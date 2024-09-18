@@ -1,15 +1,11 @@
-import gzip
 import logging
 import os
 import shutil
-import sys
 import tarfile
 
 import ftplib
 import re
-import time
 from datetime import datetime
-from os.path import exists
 from pathlib import Path
 
 import regex
@@ -28,7 +24,6 @@ logging.basicConfig(filename="Workflow_log.txt", filemode="a",
                     datefmt="%d-%m-%y %H:%M:%S", level=logging.INFO)
 
 logger = logging.getLogger("FAIRClinical Workflow")
-
 
 def parse_ftp_listing(line):
     """ Parse a line from an FTP directory listing. """
@@ -100,7 +95,9 @@ def process_new_archive(new_archive_path):
     # process supplementary files
     supplementary_output_path = F"{output_path}_supplementary"
     get_supplementary_files(full_text_folder)
+    execute_movie_removal(supplementary_output_path)
     standardise_supplementary_files(supplementary_output_path)
+    archive_final_output(new_archive_path)
 
 
 def onerror(func, path, exc_info):
@@ -140,9 +137,12 @@ def standardise_supplementary_files(supplementary_output_path: str):
             if not success:
                 if failed_files:
                     for failed_file in failed_files:
-                        log_unprocessed_supplementary_file(F"{file}\t{failed_file}", "Failed to identify extractable text", supplementary_output_path)
+                        log_unprocessed_supplementary_file(F"{file}\t{failed_file}",
+                                                           "Failed to identify extractable text",
+                                                           supplementary_output_path)
                 else:
-                    log_unprocessed_supplementary_file(file, "Failed to identify extractable text", supplementary_output_path)
+                    log_unprocessed_supplementary_file(file, "Failed to identify extractable text",
+                                                       supplementary_output_path)
         except Exception as ex:
             log_unprocessed_supplementary_file(file, F"An error occurred: {ex}", supplementary_output_path)
             try:
@@ -156,6 +156,7 @@ def update_existing_archive(new_archive_path):
     output_path = new_archive_path.rstrip(".tar.gz")
     extract_archive(new_archive_path, output_path)
     filter_articles(output_path, "case report")
+    archive_final_output(os.path.join("Output", new_archive_path))
 
 
 def update_local_archive_versions(archive_name, date_modified, new_archive=False):
@@ -170,13 +171,13 @@ def update_local_archive_versions(archive_name, date_modified, new_archive=False
         old_content = [x.split("\t") for x in f_out.readlines()]
         new_content = old_content
         if new_archive:
-            new_content.append([archive_name, date_modified + "\n"])
+            new_content.append([archive_name, date_modified])
         else:
             index = [x for (x, y) in new_content].index(archive_name)
-            new_content[index][1] = date_modified + "\n"
+            new_content[index][1] = date_modified
         f_out.seek(0)
         f_out.truncate()
-        f_out.writelines(["\t".join(x) for x in new_content])
+        f_out.writelines(["\t".join(x) + "\n" for x in new_content])
 
 
 def check_pmc_bioc_updates():
@@ -220,7 +221,6 @@ def check_pmc_bioc_updates():
             # check if an update was carried out
             if archive_updated:
                 # changes were made, so archive the new directories
-                archive_final_output(os.path.join("Output", filename))
                 logger.info(F"Updated archive: {filename}")
                 archive_updated = False
             continue
@@ -232,7 +232,6 @@ def check_pmc_bioc_updates():
             ftp.cwd(ftp_directory)
             download_archive(ftp, filename, "Output")
         process_new_archive(os.path.join("Output", filename))
-        archive_final_output(os.path.join("Output", filename))
         update_local_archive_versions(filename, date_modified, True)
         logger.info(F"Processed new archive: {filename}")
 
