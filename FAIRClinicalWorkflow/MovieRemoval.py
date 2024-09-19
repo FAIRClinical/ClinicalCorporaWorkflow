@@ -56,7 +56,6 @@ def remove_movie_files(input_directory):
                       F"supplementary folders")
             except zipfile.BadZipfile as bz:
                 print(F"Bad zip file occurred: {bz}.")
-                log_unprocessed_supplementary_file(file, bz, input_directory)
             except Exception as ex:
                 print(F"Unexpected error occurred, please forward this to a member of the FAIRClinical project: {ex}")
 
@@ -78,7 +77,7 @@ def process_archive(file_extension, root, file, folder_path, new_output_folder):
 def copy_zip(archive, target_contents, new_output_folder):
     if not exists(new_output_folder):
         os.mkdir(new_output_folder)
-    parent_dir = os.path.split(os.path.split(archive)[0])[1]
+    parent_dir = Path(archive).parent.parent.parts[-1]
     specific_pmc = parent_dir[parent_dir.find("PMC"):parent_dir.find("_")]
     temp_zip_path = join(new_output_folder, os.path.split(archive)[-1])
     with zipfile.ZipFile(archive, 'r') as zip_read:
@@ -172,6 +171,9 @@ def copy_download_log(input_directory):
                 elif file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
                               if archived_file]:
                     excluded_log_entries.append((pmcid, url, file))
+                # ignore any video log entries
+                if any([file.endswith(x) for x in video_extensions]):
+                    continue
                 included_out.write(F"{pmcid}_supplementary\t{pmcid}\t{url}\n")
     except IOError as io:
         print(F"Download log file not found. Failed to produce the new excluded supplementary log file.")
