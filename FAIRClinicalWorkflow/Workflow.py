@@ -241,8 +241,11 @@ def check_pmc_bioc_updates():
 
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
+    supplementary_dir = str(Path(*Path(file).parts[2]))
+    pmc = supplementary_dir.replace("_supplementary", "")
+    file_name = str(Path(*Path(file).parts[-1]))
     with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
-        f_out.write(f"{Path(*Path(file).parts[2:])}\t{reason}\n")
+        f_out.write(f"{supplementary_dir}\t{pmc}\t{file_name}\t{reason}\n")
 
 
 def clear_unwanted_articles(input_dir):
