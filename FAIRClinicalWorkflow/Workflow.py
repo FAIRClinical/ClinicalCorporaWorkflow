@@ -25,6 +25,7 @@ logging.basicConfig(filename="Workflow_log.txt", filemode="a",
 
 logger = logging.getLogger("FAIRClinical Workflow")
 
+
 def parse_ftp_listing(line):
     """ Parse a line from an FTP directory listing. """
     parts = re.split(r"\s+", line, maxsplit=8)
@@ -168,16 +169,18 @@ def update_local_archive_versions(archive_name, date_modified, new_archive=False
     :return: 
     """
     with open("file_versions.tsv", "r+", encoding="utf-8") as f_out:
-        old_content = [x.split("\t") for x in f_out.readlines()]
+        old_content = [x.split("\t") for x in f_out.readlines() if x.replace("\n", "")]
         new_content = old_content
         if new_archive:
             new_content.append([archive_name, date_modified])
         else:
             index = [x for (x, y) in new_content].index(archive_name)
             new_content[index][1] = date_modified
+        output = ["\t".join(x).replace("\n", "") + "\n" for x in new_content]
+        output[-1] = output[-1].replace("\n", "")
         f_out.seek(0)
         f_out.truncate()
-        f_out.writelines(["\t".join(x) + "\n" for x in new_content])
+        f_out.writelines(output)
 
 
 def check_pmc_bioc_updates():
@@ -234,6 +237,7 @@ def check_pmc_bioc_updates():
         process_new_archive(os.path.join("Output", filename))
         update_local_archive_versions(filename, date_modified, True)
         logger.info(F"Processed new archive: {filename}")
+    print("Finished updating the clinical corpora.")
 
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
