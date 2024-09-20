@@ -278,7 +278,7 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
         if text:
             base_dir = base_dir.replace("Raw", "Processed")
             # Create a JSON output file for the extracted tables
-            with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w", encoding="utf-8") as f_out:
+            with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_text_bioc(text, file)
                 json.dump(json_output, f_out, indent=4)
