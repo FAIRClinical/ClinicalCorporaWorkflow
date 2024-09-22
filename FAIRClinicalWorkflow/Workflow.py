@@ -157,7 +157,7 @@ def update_existing_archive(new_archive_path):
     output_path = new_archive_path.rstrip(".tar.gz")
     extract_archive(new_archive_path, output_path)
     filter_articles(output_path, "case report")
-    archive_final_output(os.path.join("Output", new_archive_path))
+    archive_final_output(new_archive_path)
 
 
 def update_local_archive_versions(archive_name, date_modified, new_archive=False):
@@ -241,9 +241,9 @@ def check_pmc_bioc_updates():
 
 
 def log_unprocessed_supplementary_file(file, reason, log_path):
-    supplementary_dir = str(Path(*Path(file).parts[2]))
+    supplementary_dir = str(Path(file).parts[2])
     pmc = supplementary_dir.replace("_supplementary", "")
-    file_name = str(Path(*Path(file).parts[-1]))
+    file_name = str(Path(file).parts[-1])
     with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
         f_out.write(f"{supplementary_dir}\t{pmc}\t{file_name}\t{reason}\n")
 
