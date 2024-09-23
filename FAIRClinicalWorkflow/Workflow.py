@@ -27,7 +27,11 @@ logger = logging.getLogger("FAIRClinical Workflow")
 
 
 def parse_ftp_listing(line):
-    """ Parse a line from an FTP directory listing. """
+    """
+    Parse a line from an FTP directory listing.
+    :param line: line from an FTP directory listing
+    :return: filename and datetime modified
+    """
     parts = re.split(r"\s+", line, maxsplit=8)
     date_str = " ".join(parts[5:8])
     try:
@@ -39,6 +43,13 @@ def parse_ftp_listing(line):
 
 
 def download_archive(ftp, file, local_dir):
+    """
+    Download an archive from an FTP server.
+    :param ftp: FTP server
+    :param file: Archive file
+    :param local_dir: Local directory path to download archive
+    :return: None
+    """
     if not os.path.exists(local_dir):
         os.makedirs(local_dir)
 
@@ -51,6 +62,12 @@ def download_archive(ftp, file, local_dir):
 
 
 def list_archives_with_dates(ftp, directory):
+    """
+    Retrieve all archive file names and dates in a given FTP directory.
+    :param ftp: FTP connection
+    :param directory: FTP directory
+    :return: List of archive file names and dates
+    """
     ftp.cwd(directory)
     file_listing = []
 
@@ -70,6 +87,10 @@ def list_archives_with_dates(ftp, directory):
 
 
 def get_current_version_dates():
+    """
+    Retrieve the current version of the FAIRClinical workflow archive files.
+    :return: list of datetime strings
+    """
     lines = []
     with open("file_versions.tsv", "r", encoding="utf-8") as f_in:
         lines = f_in.readlines()
@@ -78,6 +99,13 @@ def get_current_version_dates():
 
 
 def extract_archive(archive_path, output_path):
+    """
+    Extract a tar archive from an FTP directory.
+
+    :param archive_path: path to an archive file
+    :param output_path: path to an output directory
+    :return: None
+    """
     archive = tarfile.open(archive_path, "r:gz")
     archive.extractall(output_path)
     archive.close()
@@ -85,6 +113,12 @@ def extract_archive(archive_path, output_path):
 
 
 def process_new_archive(new_archive_path):
+    """
+    Process a brand-new archive, downloading supplementary files and standardising them.
+
+    :param: new_archive_path: path to brand-new archive
+    :return: None
+    """
     # Extract archive to the same location
     output_path = new_archive_path.rstrip(".tar.gz")
     extract_archive(new_archive_path, output_path)
@@ -122,6 +156,11 @@ def onerror(func, path, exc_info):
 
 
 def standardise_supplementary_files(supplementary_output_path: str):
+    """
+    Standardise all supported supplementary files within the given directory
+    :param supplementary_output_path: path to supplementary files
+    :return: None
+    """
     dirs = [(dirpath, dirname, filename) for (dirpath, dirname, filename) in
             os.walk(supplementary_output_path) if not dirname and dirpath.endswith("Raw")]
     filepaths = []
@@ -154,6 +193,11 @@ def standardise_supplementary_files(supplementary_output_path: str):
 
 
 def update_existing_archive(new_archive_path):
+    """
+    Update an existing archive with an updated version
+    :param new_archive_path: path to an archive file
+    :return: None
+    """
     output_path = new_archive_path.rstrip(".tar.gz")
     extract_archive(new_archive_path, output_path)
     filter_articles(output_path, "case report")
@@ -335,6 +379,9 @@ def archive_final_output(path):
 
 
 def run():
+    """
+    Workflow entry point
+    """
     check_pmc_bioc_updates()
 
 
