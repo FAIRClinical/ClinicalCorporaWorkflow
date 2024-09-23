@@ -188,12 +188,14 @@ def get_pmc_from_path(path):
     return pmc
 
 
-def log_unprocessed_supplementary_file(file, reason, log_path):
+def log_unprocessed_supplementary_file(file, archived_file, reason, log_path):
     supplementary_dir = str(Path(file).parts[2])
     pmc = supplementary_dir.replace("_supplementary", "")
     file_name = str(Path(file).parts[-1])
+    if not archived_file:
+        archived_file = ""
     with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
-        f_out.write(f"{supplementary_dir}\t{pmc}\t{file_name}\t{reason}\n")
+        f_out.write(f"{supplementary_dir}\t{pmc}\t{file_name}\t{archived_file}\t{reason}\n")
 
 
 def execute_movie_removal(input_directory):

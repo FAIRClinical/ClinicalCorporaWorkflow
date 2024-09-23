@@ -138,14 +138,14 @@ def standardise_supplementary_files(supplementary_output_path: str):
             if not success:
                 if failed_files:
                     for failed_file in failed_files:
-                        log_unprocessed_supplementary_file(F"{file}\t{failed_file}",
+                        log_unprocessed_supplementary_file(file, failed_file,
                                                            "Failed to identify extractable text",
                                                            supplementary_output_path)
                 else:
-                    log_unprocessed_supplementary_file(file, "Failed to identify extractable text",
+                    log_unprocessed_supplementary_file(file, "", "Failed to identify extractable text",
                                                        supplementary_output_path)
         except Exception as ex:
-            log_unprocessed_supplementary_file(file, F"An error occurred: {ex}", supplementary_output_path)
+            log_unprocessed_supplementary_file(file, "", F"An error occurred: {ex}", supplementary_output_path)
             try:
                 if os.path.exists("temp_extracted_files"):
                     shutil.rmtree("temp_extracted_files", ignore_errors=False, onerror=onerror)
@@ -240,12 +240,14 @@ def check_pmc_bioc_updates():
     print("Finished updating the clinical corpora.")
 
 
-def log_unprocessed_supplementary_file(file, reason, log_path):
+def log_unprocessed_supplementary_file(file, archived_file, reason, log_path):
     supplementary_dir = str(Path(file).parts[2])
     pmc = supplementary_dir.replace("_supplementary", "")
     file_name = str(Path(file).parts[-1])
+    if not archived_file:
+        archived_file = ""
     with open(os.path.join(log_path, F"{os.path.split(log_path)[-1]}_unprocessed.tsv"), "a", encoding="utf-8") as f_out:
-        f_out.write(f"{supplementary_dir}\t{pmc}\t{file_name}\t{reason}\n")
+        f_out.write(f"{supplementary_dir}\t{pmc}\t{file_name}\t{archived_file}\t{reason}\n")
 
 
 def clear_unwanted_articles(input_dir):
