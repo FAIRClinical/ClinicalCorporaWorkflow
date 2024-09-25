@@ -151,7 +151,7 @@ class BioCTable:
         self.passages.append(passage)
 
 
-def get_tables_bioc(tables):
+def get_tables_bioc(tables, textsource="Auto-CORPus"):
     """
     Generates a BioC XML structure containing tables.
 
@@ -179,6 +179,7 @@ def get_tables_bioc(tables):
             {
                 "id": 1,
                 "inputfile": str(Path(*Path(filename).parts[2:])),
+                "textsource": textsource,
                 "infons": {},
                 "passages": [BioCTable(filename, i + 1, x).__dict__ for i, x in enumerate(tables)],
                 "annotations": [],
@@ -189,7 +190,7 @@ def get_tables_bioc(tables):
     return bioc
 
 
-def get_text_bioc(paragraphs):
+def get_text_bioc(paragraphs, textsource="Auto-CORPus"):
     """
     Generates a BioC XML structure containing text paragraphs.
 
@@ -214,6 +215,7 @@ def get_text_bioc(paragraphs):
             {
                 "id": 1,
                 "inputfile": str(Path(*Path(filename).parts[2:])),
+                "textsource": textsource,
                 "infons": {},
                 "passages": [BioCText(filename, paragraphs).__dict__],
                 "annotations": [],

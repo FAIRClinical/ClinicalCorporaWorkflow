@@ -12,9 +12,9 @@ def get_ocr_results(file):
     if response.status_code == 200:
         result = response.json()
         paragraphs = [x for x in result["ocr_output"].split("\n") if x]
-        return paragraphs
+        return paragraphs, "https://ocrweb.text-analytics.ch/"
     else:
-        return None
+        return None, "https://ocrweb.text-analytics.ch/"
 
 
 def get_sibils_ocr(filename, pmcid):
@@ -24,7 +24,7 @@ def get_sibils_ocr(filename, pmcid):
     if response.status_code == 200:
         result = response.json()
         if "missing ids:" in result['warning']:
-            return None
+            return None, url
         bioc_doc = result["sibils_article_set"][0]
-        return bioc_doc
-    return None
+        return bioc_doc, url
+    return None, url

@@ -271,16 +271,16 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
     if file:
         base_dir, file_name = os.path.split(file)
         # Process the PDF document using a custom excel_extractor
-        text = get_sibils_ocr(file, pmcid)
+        text, url = get_sibils_ocr(file, pmcid)
         if not text:
-            text = get_ocr_results(file)
+            text, url = get_ocr_results(file)
         # If tables are extracted
         if text:
             base_dir = base_dir.replace("Raw", "Processed")
             # Create a JSON output file for the extracted tables
             with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
-                json_output = get_text_bioc(text, file)
+                json_output = get_text_bioc(text, file, url)
                 json.dump(json_output, f_out, indent=4)
             return True
     return False

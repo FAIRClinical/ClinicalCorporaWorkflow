@@ -97,8 +97,9 @@ class BioCTable:
     Converts tables from nested lists into a BioC table object.
     """
 
-    def __init__(self, table_id, table_data):
+    def __init__(self, table_id, table_data, textsource="Auto-CORPus"):
         self.id = str(table_id) + "_1"
+        self.textsource = textsource
         self.infons = {}
         self.passages = []
         self.annotations = []
@@ -181,7 +182,7 @@ class BioCTable:
         self.passages.append(passage)
 
 
-def get_tables_bioc(tables, filename):
+def get_tables_bioc(tables, filename, textsource="Auto-CORPus"):
     """
         Converts a list of tables into the BioC format.
 
@@ -202,7 +203,7 @@ def get_tables_bioc(tables, filename):
                 "id": 1,
                 "inputfile": str(Path(*Path(filename).parts[2:])),
                 "infons": {},
-                "passages": [BioCTable(i + 1, x).__dict__ for i, x in enumerate(tables)],
+                "passages": [BioCTable(i + 1, x, textsource).__dict__ for i, x in enumerate(tables)],
                 "annotations": [],
                 "relations": []
             }
@@ -238,7 +239,7 @@ def get_blank_cell_count(row):
     return blank_count
 
 
-def get_text_bioc(parsed_texts, filename):
+def get_text_bioc(parsed_texts, filename, textsource="Auto-CORPus"):
     """
     Convert parsed texts into BioC format.
 
@@ -277,6 +278,7 @@ def get_text_bioc(parsed_texts, filename):
             {
                 "id": 1,
                 "inputfile": str(Path(*Path(filename).parts[2:])),
+                "textsource": textsource,
                 "infons": {},
                 "passages": [BioCText(replace_unicode(x)).__dict__ for x in [y for y in parsed_texts]],
                 "annotations": [],
