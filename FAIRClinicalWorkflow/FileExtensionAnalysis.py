@@ -4,6 +4,7 @@ import sys
 import tarfile
 import zipfile
 from collections import defaultdict
+from pathlib import Path
 
 zip_extensions = [".zip", ".7z", ".rar", ".zlib", ".7-zip", ".pzip", ".xz"]
 tar_extensions = [".tgz", ".tar"]
@@ -77,10 +78,12 @@ def get_file_extensions(folder_path):
     extensions = defaultdict(lambda: {'total': 0, 'locations': []})
     for root, dirs, files in os.walk(folder_path):
         for file in files:
+            location = os.path.relpath(os.path.join(root, file), folder_path)
+            if any([x for x in Path(location).parents if str(x).lower().endswith("processed")]):
+                continue
             # Get file extension
             file_extension = os.path.splitext(file)[-1]
             if file_extension:
-                location = os.path.relpath(os.path.join(root, file), folder_path)
                 extensions[file_extension.lower()]['total'] += 1
                 unique_directories[root][file_extension.lower()]["total"] += 1
                 extensions[file_extension.lower()]['locations'].append(location)
@@ -122,7 +125,16 @@ def print_output(extensions, input_path):
     output_msg = ""
     # Print directory level summaries
     for directory in unique_directories.keys():
-        print(F"{directory.replace(input_path, '')[1:]}")
+        # remove the first 2 directories
+        cleaned_path = Path(directory).parts[2:]
+        # reform the path
+        cleaned_path = Path(*cleaned_path)
+        # remove 'Raw' if it's in the path
+        if 'Raw' in cleaned_path.parts:
+            cleaned_path = Path(*[part for part in cleaned_path.parts if part != 'Raw'])
+
+        print(F"{cleaned_path}")
+        output_msg += F"{cleaned_path}\n"
         directory_stats = unique_directories[directory]
         directory_total = 0
         for extension in directory_stats.keys():
@@ -144,7 +156,7 @@ def print_output(extensions, input_path):
         output_msg += F"{extension}: {total} files\n"
     print(F"Total: {total_file_count} files")
     output_msg += F"Total: {total_file_count} files\n"
-    with open(os.path.join(sys.argv[1], "extension_analysis.txt"), "w", encoding="utf-8") as f_out:
+    with open(Path(input_path) / "extension_analysis.txt", "w+", encoding="utf-8") as f_out:
         f_out.write(output_msg)
 
 

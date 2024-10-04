@@ -14,7 +14,7 @@ def generate_title_list(dir, search_str):
             article_title_list.append((article.documents[0].id, article.documents[0].passages[0].text,
                                        article.documents[0].passages[0].infons["subtitle"]
                                        if "subtitle" in article.documents[0].passages[0].infons.keys() else ""))
-    with open(os.path.join(os.path.split(dir)[0], F"{pathlib.Path(dir).parent.parts[-1]}_articles.tsv"), "w", encoding="utf-8") as f_out:
+    with open(os.path.join(os.path.split(dir)[0], F"{pathlib.Path(dir).parent.parts[-1]}_articles.tsv"), "w+", encoding="utf-8") as f_out:
         for id, title, subtitle in article_title_list:
             if search_str.lower() in title.lower():
                 f_out.write(F"PMC{id}\t{title}\n")
@@ -52,14 +52,14 @@ def scan_bioc_files(results):
 
             if bioc.documents[0].passages[-1].infons["section_type"].lower() == "title":
                 title_only += 1
-                with open(os.path.join(titles_folder, file), "w") as f_out:
+                with open(os.path.join(titles_folder, file), "w+") as f_out:
                     biocjson.dump(bioc, f_out)
             elif bioc.documents[0].passages[-1].infons["section_type"].lower() == "abstract":
                 abstract_only += 1
-                with open(os.path.join(abstract_folder, file), "w") as f_out:
+                with open(os.path.join(abstract_folder, file), "w+") as f_out:
                     biocjson.dump(bioc, f_out)
             else:
-                with open(os.path.join(full_text_folder, file), "w") as f_out:
+                with open(os.path.join(full_text_folder, file), "w+") as f_out:
                     biocjson.dump(bioc, f_out)
             parsed_count += 1
         except Exception as ex:
@@ -84,7 +84,7 @@ def load_pmc_bioc(file_path):
             bioc = json.load(f_in)
             bioc = bioc[0]
             bioc = biocjson.loads(json.dumps(bioc))
-            with open(file_path, "w") as f_out:
+            with open(file_path, "w+") as f_out:
                 biocjson.dump(bioc, f_out)
     return bioc
 

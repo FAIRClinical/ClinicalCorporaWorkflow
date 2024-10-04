@@ -376,6 +376,7 @@ def archive_final_output(path):
             print(f"Original directory '{folder_path}' has been removed.")
         except Exception as e:
             print(f"An error occurred: {e}")
+            continue
 
 
 def run():

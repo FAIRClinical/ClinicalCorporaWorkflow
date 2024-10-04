@@ -158,10 +158,10 @@ def __extract_pdf_data(locations=None, file=None):
             text, tables = convert_pdf_result([], text, x)
             # Write the extracted tables & texts to JSON files
             # if tables:
-            #     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w", encoding="utf-8") as tables_out:
+            #     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as tables_out:
             #         json.dump(tables, tables_out, indent=4)
             if text:
-                with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w", encoding="utf-8") as text_out:
+                with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as text_out:
                     biocjson.dump(text, text_out, indent=4)
     if file:
         try:
@@ -171,18 +171,20 @@ def __extract_pdf_data(locations=None, file=None):
             if text or tables:
                 base_dir = base_dir.replace("Raw", "Processed")
                 if text:
-                    with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as text_out:
+                    with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as text_out:
                         biocjson.dump(text, text_out, indent=4)
                 if tables:
-                    with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w", encoding="utf-8") as tables_out:
+                    with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+",
+                              encoding="utf-8") as tables_out:
                         json.dump(tables, tables_out, indent=4)
-                text, images, out_meta, tables = None, None, None, None
+                text, images, out_meta, tables, file = None, None, None, None, None
                 return True
             else:
-                text, images, out_meta, tables = None, None, None, None
+                text, images, out_meta, tables, file = None, None, None, None, None
                 return False
         except Exception as ex:
-            text, images, out_meta, tables = None, None, None, None
+            print(ex)
+            text, images, out_meta, tables, file = None, None, None, None, None
             return False
 
 
@@ -213,7 +215,7 @@ def __extract_spreadsheet_data(locations=None, file=None):
             # If tables are extracted
             if tables:
                 # Create a JSON output file for the extracted tables
-                with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w", encoding="utf-8") as f_out:
+                with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as f_out:
                     # Generate BioC format representation of the tables
                     json_output = get_tables_bioc(tables, x)
                     json.dump(json_output, f_out, indent=4)
@@ -227,7 +229,7 @@ def __extract_spreadsheet_data(locations=None, file=None):
         if tables:
             base_dir = base_dir.replace("Raw", "Processed")
             # Create a JSON output file for the extracted tables
-            with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w", encoding="utf-8") as f_out:
+            with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_tables_bioc(tables, file)
                 json.dump(json_output, f_out, indent=4)
@@ -262,7 +264,7 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
             # If tables are extracted
             if text:
                 # Create a JSON output file for the extracted tables
-                with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as f_out:
+                with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as f_out:
                     # Generate BioC format representation of the tables
                     json_output = get_text_bioc(text, x)
                     json.dump(json_output, f_out, indent=4)
@@ -278,7 +280,7 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
         if text:
             base_dir = base_dir.replace("Raw", "Processed")
             # Create a JSON output file for the extracted tables
-            with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as f_out:
+            with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_text_bioc(text, file, url)
                 json.dump(json_output, f_out, indent=4)
@@ -308,7 +310,7 @@ def __extract_powerpoint_data(locations=None, file=None):
             text, tables = convert_pdf_result([], text, file)
             if text:
                 base_dir = base_dir.replace("Raw", "Processed")
-                with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as text_out:
+                with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as text_out:
                     biocjson.dump(text, text_out, indent=4)
                 return True
             else:
@@ -425,6 +427,7 @@ def process_archive_file(locations=None, file=None):
                 print(F"Removed: {file}")
                 os.remove(file)
     return success, failed_files
+
 
 def process_supplementary_files(supplementary_files, output_format='json', pmcid=None):
     """

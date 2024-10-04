@@ -16,8 +16,9 @@ class BioCTable:
     Converts tables from nested lists into a BioC table object.
     """
 
-    def __init__(self, table_id, table_data):
+    def __init__(self, table_id, table_data, textsource):
         self.id = str(table_id) + "_1"
+        self.textsource = textsource
         self.infons = {}
         self.passages = []
         self.annotations = []
@@ -93,13 +94,14 @@ class BioCTable:
         self.passages.append(passage)
 
 
-def get_tables_bioc(tables, filename):
+def get_tables_bioc(tables, filename, textsource="Auto-CORPus"):
     """
     Converts extracted tables into BioC format.
 
     Args:
         tables: A list of tables extracted from an Excel file.
         filename: The name of the Excel file.
+        textsource: Source of the text content.
 
     Returns:
         A BioC format representation of the extracted tables.
@@ -110,7 +112,7 @@ def get_tables_bioc(tables, filename):
         "date": str(datetime.date.today().strftime("%Y%m%d")),
         "key": "autocorpus_supplementary.key",
         "infons": {},
-        "documents": [BioCTable(i + 1, x).__dict__ for i, x in enumerate(tables)]
+        "documents": [BioCTable(i + 1, x, textsource).__dict__ for i, x in enumerate(tables)]
     }
     return bioc
 
@@ -203,7 +205,7 @@ def process_directories(input_directory):
                 # If tables are extracted
                 if tables:
                     # Create a JSON output file for the extracted tables
-                    with open(F"{os.path.join(parent, 'Excel_tables.json')}", "w", encoding="utf-8") as f_out:
+                    with open(F"{os.path.join(parent, 'Excel_tables.json')}", "w+", encoding="utf-8") as f_out:
                         # Generate BioC format representation of the tables
                         json_output = get_tables_bioc(tables, join(parent, file))
                         json.dump(json_output, f_out, indent=4)

@@ -19,7 +19,7 @@ def load_pmc_bioc(file_path):
             bioc = json.load(f_in)
             bioc = bioc[0]
             bioc = biocjson.loads(json.dumps(bioc))
-            with open(file_path, "w") as f_out:
+            with open(file_path, "w+") as f_out:
                 biocjson.dump(bioc, f_out)
     return bioc
 
@@ -30,7 +30,7 @@ def generate_title_list(pubs_path, output_path):
         with open(os.path.join(pubs_path, file), "r") as f_in:
             article = biocjson.load(f_in)
             article_title_list.append((article.documents[0].id, article.documents[0].passages[0].text))
-    with open(os.path.join(output_path, F"{main_folder}_articles.tsv"), "w", encoding="utf-8") as f_out:
+    with open(os.path.join(output_path, F"{main_folder}_articles.tsv"), "w+", encoding="utf-8") as f_out:
         for id, title in article_title_list:
             f_out.write(F"{id}\t{title}\n")
 

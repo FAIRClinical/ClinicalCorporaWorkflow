@@ -135,7 +135,7 @@ def search_tar(path):
 def generate_video_log(videos, log_path):
     pmc = get_pmc_from_path(log_path)
     video_log_path = join(log_path, F"{pmc}_json_ascii_supplementary_excluded.tsv")
-    with open(video_log_path, "w", encoding="utf-8") as f_out:
+    with open(video_log_path, "w+", encoding="utf-8") as f_out:
         for pmc, url, file in videos:
             if file:
                 archive = url.strip("\n").split("/")[-1]
@@ -156,7 +156,7 @@ def copy_download_log(input_directory):
     included_log_path = download_log_path.replace("download_log", F"{pmc}_json_ascii_supplementary_included")
     excluded_log_entries = []
     try:
-        with open(download_log_path, "r", encoding="utf-8") as f_in, open(included_log_path, "w",
+        with open(download_log_path, "r", encoding="utf-8") as f_in, open(included_log_path, "w+",
                                                                           encoding="utf-8") as included_out:
             for line in f_in.readlines():
                 folder, pmcid, url = line.split("\t")

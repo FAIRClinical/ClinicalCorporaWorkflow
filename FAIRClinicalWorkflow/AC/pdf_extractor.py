@@ -97,9 +97,8 @@ class BioCTable:
     Converts tables from nested lists into a BioC table object.
     """
 
-    def __init__(self, table_id, table_data, textsource="Auto-CORPus"):
+    def __init__(self, table_id, table_data, text_source="Auto-CORPus"):
         self.id = str(table_id) + "_1"
-        self.textsource = textsource
         self.infons = {}
         self.passages = []
         self.annotations = []
@@ -202,6 +201,7 @@ def get_tables_bioc(tables, filename, textsource="Auto-CORPus"):
             {
                 "id": 1,
                 "inputfile": str(Path(*Path(filename).parts[2:])),
+                "textsource": textsource,
                 "infons": {},
                 "passages": [BioCTable(i + 1, x, textsource).__dict__ for i, x in enumerate(tables)],
                 "annotations": [],
@@ -294,7 +294,7 @@ def convert_pdf_result(tables, text, input_file):
     Convert the result of processing a PDF into a BioC format.
 
     Args:
-        tables (list): The extracted tables from the PDF.
+        tables (DataFrame): The extracted tables from the PDF.
         text (list): The extracted text from the PDF.
         input_file (str): The path of the input PDF file.
 
@@ -312,8 +312,11 @@ def convert_pdf_result(tables, text, input_file):
 
     Finally, the function returns a tuple containing the converted BioC text and tables as `bioc_text` and `bioc_tables`, respectively.
     """
-
-    bioc_tables, bioc_text = get_tables_bioc(tables, input_file), get_text_bioc(text, input_file)
+    bioc_text, bioc_tables = None, None
+    if text:
+        bioc_text = get_text_bioc(text, input_file)
+    if tables:
+        bioc_tables = get_tables_bioc(tables, input_file)
     return bioc_text, bioc_tables
 
 
@@ -776,7 +779,7 @@ def process_directories(input_directory):
                 if tables:
                     successful_extractions += 1
                     # Write the extracted tables to a JSON file
-                    with open(F"{os.path.join(parent, 'PDF_tables.json')}", "w", encoding="utf-8") as f_out:
+                    with open(F"{os.path.join(parent, 'PDF_tables.json')}", "w+", encoding="utf-8") as f_out:
                         json_output = convert_pdf_result(tables, text, file)
                         json.dump(json_output[1], f_out, indent=4)
                     # Log the output file path

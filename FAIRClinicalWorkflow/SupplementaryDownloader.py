@@ -161,10 +161,10 @@ def get_bioc_supp_docs(input_directory, bioc_file, is_id=False):
 
 def output_problematic_logs():
     if no_supp_links:
-        with open("NoSuppLinks.txt", "w", encoding="utf-8") as f_in:
+        with open("NoSuppLinks.txt", "w+", encoding="utf-8") as f_in:
             f_in.write("\n".join(no_supp_links))
     if missing_html_files:
-        with open("NoArticleHtml.txt", "w", encoding="utf-8") as f_in:
+        with open("NoArticleHtml.txt", "w+", encoding="utf-8") as f_in:
             f_in.write("\n".join(missing_html_files))
 
 
