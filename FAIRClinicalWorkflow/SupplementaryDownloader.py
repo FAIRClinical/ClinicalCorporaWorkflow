@@ -12,6 +12,9 @@ from bioc import biocjson
 from lxml import etree
 import logging
 
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
+
 from FAIRClinicalWorkflow.MovieRemoval import video_extensions
 
 refs_log = logging.getLogger("ReferenceLogger")
@@ -24,10 +27,13 @@ no_supp_links = []
 headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:101.0) Gecko/20100101 Firefox/101.0"}
 
 
-def get_article_links(pmc_id):
+def get_article_links(pmc_id, session):
     response = None
     try:
-        response = requests.get(F"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}", headers=headers)
+        response = session.get(F"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}", timeout=10)
+    except requests.ConnectTimeout as ct:
+        logging.error(F"{pmc_id} could not be downloaded due to a connection timeout:\n{ct}")
+        missing_html_files.append(F"{pmc_id}")
     except requests.ConnectionError as ce:
         logging.error(F"{pmc_id} could not be downloaded:\n{ce}")
         missing_html_files.append(F"{pmc_id}")
@@ -50,9 +56,9 @@ def log_download(log_path, downloaded_file_dir, pmc_id, link):
         f_out.write(F"{Path(downloaded_file_dir).parent.parent}\t{pmc_id}\t{link}\n")
 
 
-def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir):
+def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, session):
     try:
-        file_response = requests.get(link_address, headers=headers, stream=True)
+        file_response = session.get(link_address, stream=True, timeout=10)
         if file_response.ok:
             try:
                 if not exists(new_dir):
@@ -85,7 +91,7 @@ def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir):
     return False
 
 
-def download_supplementary_files(supp_links, new_dir, pmc_id, parent_dir):
+def download_supplementary_files(supp_links, new_dir, pmc_id, parent_dir, session):
     for link in supp_links:
         link_address = link.attrib['href']
         if "www." not in link_address and "http" not in link_address:
@@ -95,12 +101,12 @@ def download_supplementary_files(supp_links, new_dir, pmc_id, parent_dir):
             log_download(log_directory, new_dir, pmc_id, link_address)
             continue
         time.sleep(random.random() * 10)
-        file_response = download_supplementary_file(link_address, new_dir, pmc_id, parent_dir)
+        file_response = download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, session)
 
 
-def get_supp_docs(input_directory, bioc_file, is_id=False):
+def get_supp_docs(input_directory, bioc_file, session, is_id=False):
     pmc_id = get_formatted_pmcid(bioc_file, is_id)
-    response = get_article_links(pmc_id)
+    response = get_article_links(pmc_id, session)
     if response:
         if response.ok:
             supp_links = etree.HTML(response.text).xpath("//*[@id='data-suppmats']//a")
@@ -118,7 +124,7 @@ def get_supp_docs(input_directory, bioc_file, is_id=False):
                 if not exists(os.path.join(file_dir, "Processed")):
                     os.makedirs(os.path.join(file_dir, "Processed"))
                 new_dir = os.path.join(file_dir, "Raw")
-                download_supplementary_files(supp_links, new_dir, pmc_id, input_directory)
+                download_supplementary_files(supp_links, new_dir, pmc_id, input_directory, session)
         else:
             if response.status_code == 403:
                 logging.error(F"Unauthorized: {pmc_id}")
@@ -150,12 +156,12 @@ def log_supplementary_article(pmcid):
         f_out.write(F"{pmcid}\n")
 
 
-def get_bioc_supp_docs(input_directory, bioc_file, is_id=False):
+def get_bioc_supp_docs(input_directory, bioc_file, session, is_id=False):
     pmc_id = get_formatted_pmcid(bioc_file, is_id)
     supp_links, has_supp_section = get_bioc_supp_links(bioc_file)
     if has_supp_section:
         logging.info(F"{pmc_id} has supplementary links")
-        get_supp_docs(input_directory, bioc_file, is_id)
+        get_supp_docs(input_directory, bioc_file, session, is_id)
     return True
 
 
@@ -169,6 +175,12 @@ def output_problematic_logs():
 
 
 def process_directory(input_directory):
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:101.0) Gecko/20100101 "
+                                          "Firefox/101.0"})
+    retry = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('https://', adapter)
     new_files = [x for x in os.listdir(input_directory) if isfile(join(input_directory, x))]
     skip = True
     for file in new_files:
@@ -176,7 +188,7 @@ def process_directory(input_directory):
             continue
         logging.info(F"Processing file {file}")
         bioc_file = load_file(join(input_directory, file))
-        result = get_bioc_supp_docs(input_directory, bioc_file)
+        result = get_bioc_supp_docs(input_directory, bioc_file, session)
         if not result:
             missing_html_files.append(F"{bioc_file.documents[0].id}")
     output_problematic_logs()

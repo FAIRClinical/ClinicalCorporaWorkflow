@@ -65,12 +65,12 @@ def process_archive(file_extension, root, file, folder_path, new_output_folder):
     archive_path = join(new_output_folder.replace("Processed", "Raw"), file)
     if file_extension in zip_extensions:
         archive_contents = search_zip(archive_path)
-        if archive_contents:
-            copy_zip(archive_path, archive_contents, new_output_folder)
+        # if archive_contents:
+        #     copy_zip(archive_path, archive_contents, new_output_folder)
     elif file_extension in tar_extensions or file_extension in gzip_extensions:
         archive_contents = search_tar(archive_path)
-        if archive_contents:
-            copy_tar(archive_path, archive_contents, new_output_folder)
+        # if archive_contents:
+        #     copy_tar(archive_path, archive_contents, new_output_folder)
     return archive_contents
 
 

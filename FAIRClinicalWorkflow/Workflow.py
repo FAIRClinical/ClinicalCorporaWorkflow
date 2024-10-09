@@ -177,7 +177,7 @@ def standardise_supplementary_files(supplementary_output_path: str):
             if not success:
                 if failed_files:
                     for failed_file in failed_files:
-                        log_unprocessed_supplementary_file(file, failed_file,
+                        log_unprocessed_supplementary_file(file, failed_file.filename,
                                                            "Failed to identify extractable text",
                                                            supplementary_output_path)
                 else:
@@ -371,7 +371,10 @@ def archive_final_output(path):
                 tar.add(folder_path, arcname=os.path.basename(folder_path))
             print(f"Directory '{folder_path}' has been successfully compressed into '{archive_name}'.")
 
-            # Remove the original directory after successful compression
+            # Remove the original dir  m
+            #
+            #
+            # ctory after successful compression
             shutil.rmtree(folder_path)
             print(f"Original directory '{folder_path}' has been removed.")
         except Exception as e:

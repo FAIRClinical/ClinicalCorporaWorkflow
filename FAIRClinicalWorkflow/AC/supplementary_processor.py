@@ -5,6 +5,7 @@ import sys
 import tarfile
 import zipfile
 from os.path import exists
+from pathlib import Path
 
 from bioc import biocjson
 
@@ -339,13 +340,13 @@ def process_and_update_zip(archive_path, filenames):
             file_path = os.path.join(temp_dir, filename.filename)
 
             # Process the temp file
-            success = process_supplementary_files([file_path])
+            success, failed_files = process_supplementary_files([file_path])
             if success:
                 for new_result_file in ["_bioc.json", "_tables.json"]:
                     if exists(file_path + new_result_file):
-                        with open(file_path + new_result_file, "r") as f_in, zipfile.ZipFile(archive_path,
-                                                                                             'a') as zip_write:
-                            zip_write.writestr(file_path + new_result_file, f_in.read())
+                        output_path = os.path.join(str(Path(archive_path).parent).replace("Raw", "Processed"), str(os.path.basename(file_path)) + new_result_file)
+                        with open(file_path + new_result_file, "r") as f_in, open(output_path, "w+") as f_out:
+                            f_out.write(f_in.read())
                         success = True
             else:
                 failed_files.append(filename)
@@ -378,7 +379,7 @@ def process_and_update_tar(archive_path, filenames):
             file_path = os.path.join(temp_dir, filename)
 
             # Process the temp file
-            success = process_supplementary_files([file_path])
+            success, failed_files = process_supplementary_files([file_path])
             if success:
                 for new_result_file in ["_bioc.json", "_tables.json"]:
                     if exists(file_path + new_result_file):
