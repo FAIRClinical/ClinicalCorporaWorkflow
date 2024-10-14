@@ -1,12 +1,15 @@
+import gc
 import json
 import os.path
 import secrets
 import sys
 import tarfile
 import zipfile
+import PyPDF2
 from os.path import exists
 from pathlib import Path
 
+import marker.utils
 from bioc import biocjson
 
 from FAIRClinicalWorkflow.AC.file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
@@ -166,13 +169,26 @@ def __extract_pdf_data(locations=None, file=None):
                     biocjson.dump(text, text_out, indent=4)
     if file:
         try:
+            marker.utils.flush_cuda_memory()
+            # Check the size of the PDF in pages
+            total_pages = 0
+            with open(file, 'rb') as f_in:
+                pdf_reader = PyPDF2.PdfReader(file)
+                total_pages = len(pdf_reader.pages)
+                f_in.close()
+
+            if total_pages > 100:
+                print(F"PDF file contains over 100 pages, skipping: {file}")
+                return False
+
             text, images, out_meta = convert_single_pdf(fname=file, model_lst=model_list, langs=["English"])
             text, tables = extract_table_from_text(text)
             text, tables = convert_pdf_result(tables, [text], file)
             if text or tables:
                 base_dir = base_dir.replace("Raw", "Processed")
                 if text:
-                    with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as text_out:
+                    with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+",
+                              encoding="utf-8") as text_out:
                         biocjson.dump(text, text_out, indent=4)
                 if tables:
                     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+",
@@ -344,7 +360,8 @@ def process_and_update_zip(archive_path, filenames):
             if success:
                 for new_result_file in ["_bioc.json", "_tables.json"]:
                     if exists(file_path + new_result_file):
-                        output_path = os.path.join(str(Path(archive_path).parent).replace("Raw", "Processed"), str(os.path.basename(file_path)) + new_result_file)
+                        output_path = os.path.join(str(Path(archive_path).parent).replace("Raw", "Processed"),
+                                                   str(os.path.basename(file_path)) + new_result_file)
                         with open(file_path + new_result_file, "r") as f_in, open(output_path, "w+") as f_out:
                             f_out.write(f_in.read())
                         success = True
@@ -439,6 +456,7 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
     """
     success, failed_files = False, []
     for file in supplementary_files:
+        gc.collect()
         if not os.path.exists(file) or os.path.isdir(file):
             success = False
 

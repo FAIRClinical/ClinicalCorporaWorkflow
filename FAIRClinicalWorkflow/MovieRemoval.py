@@ -1,5 +1,6 @@
 import io
 import os
+import secrets
 import shutil
 import sys
 import tarfile
@@ -32,7 +33,7 @@ def remove_movie_files(input_directory):
                     archived_files = process_archive(file_extension, input_directory, file,
                                                      join(input_directory, dirpath),
                                                      raw_path.replace("Raw", "Processed"))
-                    # remove the archive if it contains videos.
+                    # remove the archive if it contains ONLY videos.
                     all_videos = True
                     for archived_file in archived_files:
                         if any([archived_file.endswith(x) for x in video_extensions]):
@@ -64,7 +65,7 @@ def process_archive(file_extension, root, file, folder_path, new_output_folder):
     archive_contents = []
     archive_path = join(new_output_folder.replace("Processed", "Raw"), file)
     if file_extension in zip_extensions:
-        archive_contents = search_zip(archive_path)
+        archive_contents = search_zip(archive_path, True)
         # if archive_contents:
         #     copy_zip(archive_path, archive_contents, new_output_folder)
     elif file_extension in tar_extensions or file_extension in gzip_extensions:
@@ -72,7 +73,6 @@ def process_archive(file_extension, root, file, folder_path, new_output_folder):
         # if archive_contents:
         #     copy_tar(archive_path, archive_contents, new_output_folder)
     return archive_contents
-
 
 def copy_zip(archive, target_contents, new_output_folder):
     if not exists(new_output_folder):
@@ -89,19 +89,32 @@ def copy_zip(archive, target_contents, new_output_folder):
                     videos_removed.append((parent_dir, specific_pmc, os.path.split(archive)[1], item.filename))
 
 
-def search_zip(path):
+def search_zip(path, remove_video=False, root=True):
     useful_file_dirs = []
     with zipfile.ZipFile(path, 'r') as zip_ref:
         for member in zip_ref.infolist():
             member_extension = os.path.splitext(member.filename)[-1].lower()
             if member_extension in zip_extensions:
                 # Recursively search inside subdirectories
-                nested_useful_dirs = search_zip(zip_ref.extract(member))
+                nested_useful_dirs = search_zip(zip_ref.extract(member), True, False)
                 if nested_useful_dirs:
                     useful_file_dirs.extend(nested_useful_dirs)
-            elif "." in member_extension and "_MACOSX" not in member.filename and member_extension not in video_extensions:
-                useful_file_dirs.append(member.filename)
+            elif "." in member_extension and "_MACOSX" not in member.filename:
+                if member_extension not in video_extensions:
+                    useful_file_dirs.append(member.filename)
+    # only run if the function is at the root level i.e not in a recursive loop, about to do the final return
+    if root and remove_video and useful_file_dirs:
+        temp_name = 'temp_' + secrets.token_hex(5) + '.zip'
+        with zipfile.ZipFile(path, 'r') as zip_read:
+            # Create a temporary ZIP file
+            with zipfile.ZipFile(temp_name, 'w') as zip_write:
+                for item in zip_read.infolist():
+                    if item.filename in useful_file_dirs:
+                        zip_write.writestr(item, zip_read.read(item.filename))
 
+        # Replace the original ZIP file with the new one
+        os.remove(path)
+        os.rename(temp_name, path)
     return useful_file_dirs
 
 
@@ -120,7 +133,7 @@ def copy_tar(archive, target_contents, new_output_folder):
                     tar_write.addfile(tarinfo, fileobj=io.BytesIO(file_data))
 
 
-def search_tar(path):
+def search_tar(path, remove_video=False, root=True):
     useful_file_dirs = []
     with tarfile.open(path, "r:gz") as archive:
         for member in archive.getmembers():
@@ -128,6 +141,23 @@ def search_tar(path):
             member_extension = os.path.splitext(member.name)[-1]
             if member_extension not in video_extensions:
                 useful_file_dirs.append(member.name)
+
+    # only run if the function is at the root level i.e not in a recursive loop, about to do the final return
+    if root and remove_video and useful_file_dirs:
+        temp_name = 'temp_' + secrets.token_hex(5) + '.tar.gz'
+        with tarfile.TarFile(path, 'r') as tar_read:
+            # Create a temporary ZIP file
+            with tarfile.TarFile(temp_name, 'w') as tar_write:
+                for item in tar_read.getmembers():
+                    if item.filename in useful_file_dirs:
+                        file_data = tar_read.extractfile(item).read()
+                        tarinfo = tarfile.TarInfo(name=item.name)
+                        tarinfo.size = len(file_data)
+                        tar_write.addfile(tarinfo, fileobj=io.BytesIO(file_data))
+
+        # Replace the original ZIP file with the new one
+        os.remove(path)
+        os.rename(temp_name, path)
 
     return useful_file_dirs
 

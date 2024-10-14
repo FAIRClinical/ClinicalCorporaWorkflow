@@ -57,9 +57,22 @@ def log_download(log_path, downloaded_file_dir, pmc_id, link):
 
 
 def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, session):
+    file_response = None
+    for attempt in range(5):
+        try:
+            file_response = session.get(link_address, timeout=20)
+            break
+        except requests.ConnectTimeout as ct:
+            if attempt == 5:
+                print(F"{link_address} could not be downloaded due to a connection timeout")
+        except requests.ConnectionError as ce:
+            if attempt == 5:
+                print(F"{link_address} could not be downloaded due to a connection error:\n{ce}")
+        except requests.exceptions.ChunkedEncodingError as ce:
+            if attempt == 5:
+                print(F"{link_address} could not be downloaded due to a ChunkedEncodingError error:\n{ce}")
     try:
-        file_response = session.get(link_address, stream=True, timeout=10)
-        if file_response.ok:
+        if file_response and file_response.ok:
             try:
                 if not exists(new_dir):
                     os.mkdir(new_dir)
@@ -77,7 +90,7 @@ def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, sessi
             return True
     except IOError as ioe:
         logging.error(F"Error writing data from {link_address} due to:\n{ioe}")
-        print(F"Error writing data from {link_address}\n")
+        print(F"Error writing data from {link_address} due to: {ioe}\n")
         refs_log.error(F"{pmc_id} - Error writing data from {link_address}")
     except requests.ConnectionError as ce:
         logging.error(F"Error connecting to {link_address} due to: \n{ce}")

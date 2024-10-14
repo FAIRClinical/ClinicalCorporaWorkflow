@@ -371,10 +371,7 @@ def archive_final_output(path):
                 tar.add(folder_path, arcname=os.path.basename(folder_path))
             print(f"Directory '{folder_path}' has been successfully compressed into '{archive_name}'.")
 
-            # Remove the original dir  m
-            #
-            #
-            # ctory after successful compression
+            # Remove the original directory after successful compression
             shutil.rmtree(folder_path)
             print(f"Original directory '{folder_path}' has been removed.")
         except Exception as e:
