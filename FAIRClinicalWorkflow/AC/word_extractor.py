@@ -9,6 +9,8 @@ from pathlib import Path
 
 from docx import Document
 
+from FAIRClinicalWorkflow.AC.utils import replace_unicode
+
 logging.basicConfig(filename="WordExtractor.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %("
                                                                               "message)s")
 
@@ -16,8 +18,7 @@ filename = ""
 
 
 class BioCText:
-    def __init__(self, input_file, text):
-        self.inputfile = input_file
+    def __init__(self, text):
         self.infons = {}
         self.passages = self.__identify_passages(text)
         self.annotations = []
@@ -28,7 +29,7 @@ class BioCText:
         Identifies passages within the given text and creates passage objects.
 
         Args:
-            text (list): The text to be processed, represented as a list of lines.
+            text (tuple): The text to be processed and a boolean which is True for header text.
 
         Returns:
             list: A list of passage objects. Each passage object is a dictionary containing the following keys:
@@ -52,31 +53,31 @@ class BioCText:
         offset = 0
         passages = []
         # Iterate through each line in the text
-        for line, is_header in text:
-            line = line.replace("\n", "")
-            iao_name = ""
-            iao_id = ""
+        line, is_header = text
+        line = line.replace("\n", "")
+        iao_name = ""
+        iao_id = ""
 
-            # Determine the type of the line and assign appropriate information
-            if line.isupper() or is_header:
-                iao_name = "document title"
-                iao_id = "IAO:0000305"
-            else:
-                iao_name = "supplementary material section"
-                iao_id = "IAO:0000326"
-            # Create a passage object and add it to the passages list
-            passages.append({
-                "offset": offset,
-                "infons": {
-                    "iao_name_1": iao_name,
-                    "iao_id_1": iao_id
-                },
-                "text": line,
-                "sentences": [],
-                "annotations": [],
-                "relations": []
-            })
-            offset += len(line)
+        # Determine the type of the line and assign appropriate information
+        if line.isupper() or is_header:
+            iao_name = "document title"
+            iao_id = "IAO:0000305"
+        else:
+            iao_name = "supplementary material section"
+            iao_id = "IAO:0000326"
+        # Create a passage object and add it to the passages list
+        passages.append({
+            "offset": offset,
+            "infons": {
+                "iao_name_1": iao_name,
+                "iao_id_1": iao_id
+            },
+            "text": line,
+            "sentences": [],
+            "annotations": [],
+            "relations": []
+        })
+        offset += len(line)
         return passages
 
 
@@ -89,7 +90,7 @@ class BioCTable:
         self.inputfile = input_file
         self.id = str(table_id) + "_1"
         self.infons = {}
-        self.passages = []
+        self.passage = {}
         self.annotations = []
         self.__build_table(table_data)
 
@@ -148,7 +149,10 @@ class BioCTable:
                 }
                 new_row.append(new_cell)
             passage["data_section"][0]["data_rows"].append(new_row)
-        self.passages.append(passage)
+        self.passage = passage
+
+    def get_table(self):
+        return self.passage
 
 
 def get_tables_bioc(tables, textsource="Auto-CORPus"):
@@ -181,12 +185,14 @@ def get_tables_bioc(tables, textsource="Auto-CORPus"):
                 "inputfile": str(Path(*Path(filename).parts[2:])),
                 "textsource": textsource,
                 "infons": {},
-                "passages": [BioCTable(filename, i + 1, x).__dict__ for i, x in enumerate(tables)],
+                "passages": [],
                 "annotations": [],
                 "relations": []
             }
         ]
     }
+    for i, x in enumerate(tables):
+        bioc["documents"][0]["passages"].append(BioCTable(i + 1, x, textsource).get_table())
     return bioc
 
 
@@ -217,7 +223,7 @@ def get_text_bioc(paragraphs, textsource="Auto-CORPus"):
                 "inputfile": str(Path(*Path(filename).parts[2:])),
                 "textsource": textsource,
                 "infons": {},
-                "passages": [BioCText(filename, paragraphs).__dict__],
+                "passages": [p for sublist in [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in sublist],
                 "annotations": [],
                 "relations": []
             }
