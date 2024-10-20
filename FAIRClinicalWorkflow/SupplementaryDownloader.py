@@ -71,6 +71,11 @@ def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, sessi
         except requests.exceptions.ChunkedEncodingError as ce:
             if attempt == 5:
                 print(F"{link_address} could not be downloaded due to a ChunkedEncodingError error:\n{ce}")
+        except requests.exceptions.InvalidURL as iu:
+            logging.error(F"Invalid URL: {iu}")
+            print(F"Invalid URL: {link_address}")
+            refs_log.error(F"{pmc_id} - Invalid URL: {link_address}")
+            return False
     try:
         if file_response and file_response.ok:
             try:
@@ -108,7 +113,7 @@ def download_supplementary_files(supp_links, new_dir, pmc_id, parent_dir, sessio
     for link in supp_links:
         link_address = link.attrib['href']
         if "www." not in link_address and "http" not in link_address:
-            link_address = F"https://www.ncbi.nlm.nih.gov{link.attrib['href']}"
+            link_address = F"https://pmc.ncbi.nlm.nih.gov{link.attrib['href']}"
         if any([link_address.endswith(x) for x in video_extensions]):
             log_directory = F"{os.path.split(parent_dir)[0]}_supplementary"
             log_download(log_directory, new_dir, pmc_id, link_address)
@@ -122,7 +127,7 @@ def get_supp_docs(input_directory, bioc_file, session, is_id=False):
     response = get_article_links(pmc_id, session)
     if response:
         if response.ok:
-            supp_links = etree.HTML(response.text).xpath("//*[@id='data-suppmats']//a")
+            supp_links = etree.HTML(response.text).xpath("//*[@class='supplementary-materials']//a")
             if not supp_links:
                 logging.info(F"{pmc_id} does not contain supplementary links.")
                 no_supp_links.append(F"{pmc_id}")
