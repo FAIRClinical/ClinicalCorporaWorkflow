@@ -100,48 +100,33 @@ class BioCTable:
     def __init__(self, table_id, table_data, text_source="Auto-CORPus"):
         self.id = str(table_id) + "_1"
         self.infons = {}
-        self.passages = []
+        self.passage = {}
         self.annotations = []
         self.__build_table(table_data)
+
+    def get_table(self):
+        return self.passage
 
     def __build_table(self, table_data):
         """
         Builds a table passage in a specific format and appends it to the list of passages.
 
         Args:
-            table_data (pandas.DataFrame): The table data to be included in the passage.
+            table_data (DataFrame): The table data to be included in the passage. It should be a list
+                               containing the table's column headings as the first row, followed by
+                               the data rows.
 
         Returns:
             None
 
         Example:
-            table_data = pandas.DataFrame(
-                [["A", "B", "C"], [1, 2, 3]],
-                columns=["Column 1", "Column 2", "Column 3"]
-            )
+            table_data = [
+                ["Column 1", "Column 2", "Column 3"],
+                [1, 2, 3],
+                [4, 5, 6]
+            ]
             self.__build_table(table_data)
         """
-        # Create the title passage and append it to the list of passages
-        title_passage = {
-            "offset": 0,
-            "infons": {
-                "section_title_1": "table_title",
-                "iao_name_1": "document title",
-                "iao_id_1": "IAO:0000305"
-            },
-        }
-        self.passages.append(title_passage)
-        # Create the caption passage and append it to the list of passages
-        caption_passage = {
-            "offset": 0,
-            "infons": {
-                "section_title_1": "table_caption",
-                "iao_name_1": "caption",
-                "iao_id_1": "IAO:0000304"
-            },
-        }
-        self.passages.append(caption_passage)
-        # Create the passage containing the table content
         passage = {
             "offset": 0,
             "infons": {
@@ -177,8 +162,7 @@ class BioCTable:
                 }
                 new_row.append(new_cell)
             passage["data_section"][0]["data_rows"].append(new_row)
-        # Append the table passage to the list of passages
-        self.passages.append(passage)
+        self.passage = passage
 
 
 def get_tables_bioc(tables, filename, textsource="Auto-CORPus"):
@@ -203,12 +187,14 @@ def get_tables_bioc(tables, filename, textsource="Auto-CORPus"):
                 "inputfile": str(Path(*Path(filename).parts[2:])),
                 "textsource": textsource,
                 "infons": {},
-                "passages": [BioCTable(i + 1, x, textsource).__dict__ for i, x in enumerate(tables)],
+                "passages": [],
                 "annotations": [],
                 "relations": []
             }
         ]
     }
+    for i, x in enumerate(tables):
+        bioc["documents"][0]["passages"].append(BioCTable(i + 1, x, textsource).get_table())
     return bioc
 
 
@@ -280,7 +266,7 @@ def get_text_bioc(parsed_texts, filename, textsource="Auto-CORPus"):
                 "inputfile": str(Path(*Path(filename).parts[2:])),
                 "textsource": textsource,
                 "infons": {},
-                "passages": [BioCText(replace_unicode(x)).__dict__ for x in [y for y in parsed_texts]],
+                "passages": [p for sublist in [BioCText(replace_unicode(x)).__dict__["passages"] for x in parsed_texts] for p in sublist],
                 "annotations": [],
                 "relations": []
             }
