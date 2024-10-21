@@ -9,13 +9,43 @@ from pathlib import Path
 
 from docx import Document
 
-from FAIRClinicalWorkflow.AC.utils import replace_unicode
-
 logging.basicConfig(filename="WordExtractor.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %("
                                                                               "message)s")
 
 filename = ""
 
+def replace_unicode(text):
+    """
+    Replaces specific Unicode characters in a given text.
+
+    Args:
+        text: The input text to be processed.
+
+    Returns:
+        The processed text with the specified Unicode characters replaced.
+
+    Examples:
+        replace_unicode('\u00a0Hello\u00adWorld\u2010')  # ' Hello-World-'
+        replace_unicode(['\u00a0Hello', '\u00adWorld'])  # [' Hello', 'World']
+    """
+    if not text:
+        return None
+    if type(text) is list:
+        clean_texts = []
+        for t in text:
+            if t and type(t) is str:
+                clean_texts.append(
+                    t.replace('\u00a0', ' ').replace('\u00ad', '-').replace('\u2010', '-').replace('\u00d7', 'x'))
+            else:
+                clean_texts.append(t)
+        return clean_texts
+    else:
+        if type(text) is str:
+            clean_text = text.replace('\u00a0', ' ').replace('\u00ad', '-').replace('\u2010', '-').replace('\u00d7',
+                                                                                                           'x')
+        else:
+            clean_text = text
+        return clean_text
 
 class BioCText:
     def __init__(self, text):
