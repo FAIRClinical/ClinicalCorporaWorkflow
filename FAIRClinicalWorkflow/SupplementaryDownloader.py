@@ -55,6 +55,11 @@ def log_download(log_path, downloaded_file_dir, pmc_id, link):
     with open(log_path, "a", encoding="utf-8") as f_out:
         f_out.write(F"{Path(downloaded_file_dir).parent.parent}\t{pmc_id}\t{link}\n")
 
+def log_failed_download(file_dir, pmc_id, link, reason):
+    set_name = Path(file_dir).parent.parent.name.replace("_supplementary", "")
+    log_path = F"Output/{set_name}_failed_downloads.log"
+    with open(log_path, "a", encoding="utf-8") as f_out:
+        f_out.write(F"{Path(file_dir).parent.name}\t{pmc_id}\t{link}\t{reason}\n")
 
 def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, session):
     file_response = None
@@ -65,15 +70,19 @@ def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, sessi
         except requests.ConnectTimeout as ct:
             if attempt == 5:
                 print(F"{link_address} could not be downloaded due to a connection timeout")
+                log_failed_download(new_dir, pmc_id, link_address, F"Connection timed out: {ct}")
         except requests.ConnectionError as ce:
             if attempt == 5:
                 print(F"{link_address} could not be downloaded due to a connection error:\n{ce}")
+                log_failed_download(new_dir, pmc_id, link_address,F"Connection error: {ce}")
         except requests.exceptions.ChunkedEncodingError as ce:
             if attempt == 5:
                 print(F"{link_address} could not be downloaded due to a ChunkedEncodingError error:\n{ce}")
+                log_failed_download(new_dir, pmc_id, link_address, F"ChunkedEncodingError: {ce}")
         except requests.exceptions.InvalidURL as iu:
             logging.error(F"Invalid URL: {iu}")
             print(F"Invalid URL: {link_address}")
+            log_failed_download(new_dir, pmc_id, link_address, F"Invalid URL: {iu}")
             refs_log.error(F"{pmc_id} - Invalid URL: {link_address}")
             return False
     try:
@@ -95,16 +104,19 @@ def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, sessi
             return True
     except IOError as ioe:
         logging.error(F"Error writing data from {link_address} due to:\n{ioe}")
+        log_failed_download(new_dir, pmc_id, link_address, F"Error writing data locally: {ioe}")
         print(F"Error writing data from {link_address} due to: {ioe}\n")
         refs_log.error(F"{pmc_id} - Error writing data from {link_address}")
     except requests.ConnectionError as ce:
         logging.error(F"Error connecting to {link_address} due to: \n{ce}")
+        log_failed_download(new_dir, pmc_id, link_address, F"Connection error: {ce}")
         print(F"Error connecting to {link_address}\n")
         refs_log.error(F"{pmc_id} - Error connecting to {link_address}")
     except Exception as ex:
         logging.error(
             F"Unexpected error occurred for article {pmc_id}, downloading: {link_address}\n{ex}")
         print(F"{pmc_id} error downloading {link_address}\n")
+        log_failed_download(new_dir, pmc_id, link_address, F"An unhandled error occurred: {ex}")
         refs_log.error(F"{pmc_id} - error downloading {link_address}")
     return False
 
