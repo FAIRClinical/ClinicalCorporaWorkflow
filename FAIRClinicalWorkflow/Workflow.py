@@ -173,15 +173,17 @@ def standardise_supplementary_files(supplementary_output_path: str):
             continue
         try:
             pmcid = regex.search(r"(PMC[0-9]*_supplementary)", file)[0].replace("_supplementary", "")
-            success, failed_files = process_supplementary_files([file], pmcid=pmcid)
+            success, failed_files, reason = process_supplementary_files([file], pmcid=pmcid)
+            if not reason:
+                reason = "Failed to identify extractable text"
             if not success:
                 if failed_files:
                     for failed_file in failed_files:
                         log_unprocessed_supplementary_file(file, failed_file.filename,
-                                                           "Failed to identify extractable text",
+                                                           reason,
                                                            supplementary_output_path)
                 else:
-                    log_unprocessed_supplementary_file(file, "", "Failed to identify extractable text",
+                    log_unprocessed_supplementary_file(file, "", reason,
                                                        supplementary_output_path)
         except Exception as ex:
             log_unprocessed_supplementary_file(file, "", F"An error occurred: {ex}", supplementary_output_path)

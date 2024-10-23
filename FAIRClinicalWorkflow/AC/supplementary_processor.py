@@ -179,7 +179,7 @@ def __extract_pdf_data(locations=None, file=None):
 
             if total_pages > 100:
                 print(F"PDF file contains over 100 pages, skipping: {file}")
-                return False
+                return False, "PDF file contains over 100 pages. This file was skipped."
 
             text, images, out_meta = convert_single_pdf(fname=file, model_lst=model_list, langs=["English"])
             text, tables = extract_table_from_text(text)
@@ -198,11 +198,11 @@ def __extract_pdf_data(locations=None, file=None):
                 return True
             else:
                 text, images, out_meta, tables, file = None, None, None, None, None
-                return False
+                return False, ""
         except Exception as ex:
             print(ex)
             text, images, out_meta, tables, file = None, None, None, None, None
-            return False
+            return False, ""
 
 
 def __extract_spreadsheet_data(locations=None, file=None):
@@ -457,7 +457,7 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
     Args:
         supplementary_files (list): List of file paths
     """
-    success, failed_files = False, []
+    success, failed_files, reason = False, [], ""
     for file in supplementary_files:
         gc.collect()
         if not os.path.exists(file) or os.path.isdir(file):
@@ -469,7 +469,7 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
 
         # Extract data from PDF files if they are present
         elif file.lower().endswith("pdf"):
-            success = __extract_pdf_data(file=file)
+            success, reason = __extract_pdf_data(file=file)
 
         # Extract data from PowerPoint files if they are present
         elif file.lower().endswith("pptx"):
@@ -484,7 +484,7 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
 
         elif [1 for x in archive_extensions if file.lower().endswith(x)]:
             success, failed_files = process_archive_file(file=file)
-    return success, failed_files
+    return success, failed_files, reason
 
 
 def generate_file_report(input_directory):
