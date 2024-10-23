@@ -16,6 +16,8 @@ def generate_title_list(dir, search_str):
                                        if "subtitle" in article.documents[0].passages[0].infons.keys() else ""))
     with open(os.path.join(os.path.split(dir)[0], F"{pathlib.Path(dir).parent.parts[-1]}_articles.tsv"), "w+", encoding="utf-8") as f_out:
         for id, title, subtitle in article_title_list:
+            if "PMC" not in id:
+                id = F"PMC{id}"
             if search_str.lower() in title.lower():
                 f_out.write(F"{id}\t{title}\n")
             else:
