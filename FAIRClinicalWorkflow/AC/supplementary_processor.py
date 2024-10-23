@@ -339,6 +339,8 @@ def __extract_powerpoint_data(locations=None, file=None):
 def process_and_update_zip(archive_path, filenames):
     # Unique temp subdirectory for this archive
     temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
+    processed_dir = Path(*Path(archive_path).parts[:-1]) / "Processed"
+
 
     # Create the unique subdirectory
     os.makedirs(temp_dir, exist_ok=True)
@@ -359,9 +361,10 @@ def process_and_update_zip(archive_path, filenames):
             success, failed_files = process_supplementary_files([file_path])
             if success:
                 for new_result_file in ["_bioc.json", "_tables.json"]:
-                    if exists(file_path + new_result_file):
-                        output_path = os.path.join(str(Path(archive_path).parent).replace("Raw", "Processed"),
-                                                   str(os.path.basename(file_path)) + new_result_file)
+                    file_path = os.path.join(temp_dir, filename.filename)
+                    output_path = os.path.join(str(Path(archive_path).parent).replace("Raw", "Processed"),
+                                               str(os.path.basename(file_path)) + new_result_file)
+                    if os.path.exists(file_path + new_result_file):
                         with open(file_path + new_result_file, "r") as f_in, open(output_path, "w+") as f_out:
                             f_out.write(f_in.read())
                         success = True

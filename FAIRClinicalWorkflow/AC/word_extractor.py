@@ -185,7 +185,7 @@ class BioCTable:
         return self.passage
 
 
-def get_tables_bioc(tables, textsource="Auto-CORPus"):
+def get_tables_bioc(tables, filename, textsource="Auto-CORPus"):
     """
     Generates a BioC XML structure containing tables.
 
@@ -202,8 +202,7 @@ def get_tables_bioc(tables, textsource="Auto-CORPus"):
         tables = [[["A", "B"], ["1", "2"]], [["X", "Y"], ["3", "4"]]]
         bioc_xml = get_tables_bioc(tables)
     """
-    global filename
-    # Create a BioC XML structure dictionary
+    # Create a BioC JSON structure dictionary
     bioc = {
         "source": "Auto-CORPus (supplementary)",
         "date": str(datetime.date.today().strftime("%Y%m%d")),
@@ -212,7 +211,7 @@ def get_tables_bioc(tables, textsource="Auto-CORPus"):
         "documents": [
             {
                 "id": 1,
-                "inputfile": str(Path(*Path(filename).parts[2:])),
+                "inputfile": filename,
                 "textsource": textsource,
                 "infons": {},
                 "passages": [],
@@ -222,13 +221,13 @@ def get_tables_bioc(tables, textsource="Auto-CORPus"):
         ]
     }
     for i, x in enumerate(tables):
-        bioc["documents"][0]["passages"].append(BioCTable(i + 1, x, textsource).get_table())
+        bioc["documents"][0]["passages"].append(BioCTable(filename, i + 1, x).get_table())
     return bioc
 
 
-def get_text_bioc(paragraphs, textsource="Auto-CORPus"):
+def get_text_bioc(paragraphs, filename, textsource="Auto-CORPus"):
     """
-    Generates a BioC XML structure containing text paragraphs.
+    Generates a BioC JSON structure containing text paragraphs.
 
     Args:
         paragraphs (list): A list of paragraphs to be included in the BioC structure.
@@ -240,7 +239,6 @@ def get_text_bioc(paragraphs, textsource="Auto-CORPus"):
         paragraphs = ["This is the first paragraph.", "This is the second paragraph."]
         bioc_xml = get_text_bioc(paragraphs)
     """
-    global filename
     # Create a BioC XML structure dictionary
     bioc = {
         "source": "Auto-CORPus (supplementary)",
@@ -250,7 +248,7 @@ def get_text_bioc(paragraphs, textsource="Auto-CORPus"):
         "documents": [
             {
                 "id": 1,
-                "inputfile": str(Path(*Path(filename).parts[2:])),
+                "inputfile": filename,
                 "textsource": textsource,
                 "infons": {},
                 "passages": [p for sublist in [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in sublist],
@@ -357,16 +355,16 @@ def process_word_document(file):
 
     # Save tables as a JSON file
     if tables:
-        with open(F"{output_path}_tables_bioc.json", "w+", encoding="utf-8") as f_out:
-            json.dump(get_tables_bioc(tables), f_out)
+        with open(F"{output_path}_tables.json", "w+", encoding="utf-8") as f_out:
+            json.dump(get_tables_bioc(tables, Path(file).name), f_out)
 
 
     # Save paragraphs as a JSON file
-    if paragraphs:
+    if paragraphs and paragraphs[0][1]:
         with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
-            json.dump(get_text_bioc(paragraphs), f_out)
+            json.dump(get_text_bioc(paragraphs, Path(file).name), f_out)
 
-    if not paragraphs and not tables:
+    if (not paragraphs and not paragraphs[0][1]) and not tables:
         return False
     else:
         return True
