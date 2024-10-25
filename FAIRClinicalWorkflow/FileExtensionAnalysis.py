@@ -125,13 +125,18 @@ def print_output(extensions, input_path):
     output_msg = ""
     # Print directory level summaries
     for directory in unique_directories.keys():
-        # remove the first 2 directories
-        cleaned_path = Path(directory).parts[2:]
+        if any([x for x in archive_extensions if directory[-1] in x]):
+            cleaned_path = Path(directory).parts[-3:]
+        else:
+            # remove the first 2 directories
+            cleaned_path = Path(directory).parts[-2:]
+            if "PMC" not in cleaned_path[0]:
+                cleaned_path = Path(directory).parts[-1:]
         # reform the path
         cleaned_path = Path(*cleaned_path)
         # remove 'Raw' if it's in the path
-        if 'Raw' in cleaned_path.parts:
-            cleaned_path = Path(*[part for part in cleaned_path.parts if part != 'Raw'])
+        # if 'Raw' in cleaned_path.parts:
+        #     cleaned_path = Path(*[part for part in cleaned_path.parts if part != 'Raw'])
 
         print(F"{cleaned_path}")
         output_msg += F"{cleaned_path}\n"

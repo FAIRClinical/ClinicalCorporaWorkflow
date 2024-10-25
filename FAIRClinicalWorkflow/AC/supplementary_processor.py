@@ -358,7 +358,7 @@ def process_and_update_zip(archive_path, filenames):
             file_path = os.path.join(temp_dir, filename.filename)
 
             # Process the temp file
-            success, failed_files = process_supplementary_files([file_path])
+            success, failed_files, reason = process_supplementary_files([file_path])
             if success:
                 for new_result_file in ["_bioc.json", "_tables.json"]:
                     file_path = os.path.join(temp_dir, filename.filename)
@@ -399,7 +399,7 @@ def process_and_update_tar(archive_path, filenames):
             file_path = os.path.join(temp_dir, filename)
 
             # Process the temp file
-            success, failed_files = process_supplementary_files([file_path])
+            success, failed_files, reason = process_supplementary_files([file_path])
             if success:
                 for new_result_file in ["_bioc.json", "_tables.json"]:
                     if exists(file_path + new_result_file):

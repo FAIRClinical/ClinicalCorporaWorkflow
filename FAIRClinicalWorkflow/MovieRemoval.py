@@ -42,6 +42,7 @@ def remove_movie_files(input_directory):
                             all_videos = False
                             break
                     if all_videos:
+                        videos_removed.append((dirpath, get_pmc_from_path(file_path), Path(str(file_path)).name, None))
                         os.remove(file_path)
                     continue
                 # Don't copy video files
@@ -65,11 +66,11 @@ def process_archive(file_extension, root, file, folder_path, new_output_folder):
     archive_contents = []
     archive_path = join(new_output_folder.replace("Processed", "Raw"), file)
     if file_extension in zip_extensions:
-        archive_contents = search_zip(archive_path, True)
+        archive_contents, identified_videos = search_zip(archive_path, True)
         # if archive_contents:
         #     copy_zip(archive_path, archive_contents, new_output_folder)
     elif file_extension in tar_extensions or file_extension in gzip_extensions:
-        archive_contents = search_tar(archive_path)
+        archive_contents, identified_videos = search_tar(archive_path, True)
         # if archive_contents:
         #     copy_tar(archive_path, archive_contents, new_output_folder)
     return archive_contents
@@ -93,12 +94,15 @@ def copy_zip(archive, target_contents, new_output_folder):
 def search_zip(path, remove_video=False, root=True):
     global videos_removed
     useful_file_dirs = []
+    identified_videos = []
     with zipfile.ZipFile(path, 'r') as zip_ref:
         for member in zip_ref.infolist():
             member_extension = os.path.splitext(member.filename)[-1].lower()
             if member_extension in zip_extensions:
                 # Recursively search inside subdirectories
-                nested_useful_dirs = search_zip(zip_ref.extract(member), True, False)
+                nested_useful_dirs, nested_identified_videos = search_zip(zip_ref.extract(member), True, False)
+                if nested_identified_videos:
+                    identified_videos.extend(nested_identified_videos)
                 if nested_useful_dirs:
                     useful_file_dirs.extend(nested_useful_dirs)
             elif "." in member_extension and "_MACOSX" not in member.filename:
@@ -107,9 +111,11 @@ def search_zip(path, remove_video=False, root=True):
                 else:
                     parent_dir = Path(path).parent.parent.parts[-1]
                     specific_pmc = parent_dir[parent_dir.find("PMC"):parent_dir.find("_")]
-                    videos_removed.append((parent_dir, specific_pmc, os.path.split(path)[1], member.filename))
+                    identified_videos.append((parent_dir, specific_pmc, os.path.split(path)[1], member.filename))
     # only run if the function is at the root level i.e not in a recursive loop, about to do the final return
     if root and remove_video and useful_file_dirs:
+        for video in identified_videos:
+            videos_removed.append(video)
         temp_name = 'temp_' + secrets.token_hex(5) + '.zip'
         with zipfile.ZipFile(path, 'r') as zip_read:
             # Create a temporary ZIP file
@@ -120,8 +126,11 @@ def search_zip(path, remove_video=False, root=True):
         # Replace the original ZIP file with the new one
         os.remove(path)
         shutil.move(temp_name, path)
+    elif root and remove_video:
+        for video in identified_videos:
+            videos_removed.append(video)
 
-    return useful_file_dirs
+    return useful_file_dirs, identified_videos
 
 
 def copy_tar(archive, target_contents, new_output_folder):
@@ -141,6 +150,7 @@ def copy_tar(archive, target_contents, new_output_folder):
 
 def search_tar(path, remove_video=False, root=True):
     global videos_removed
+    identified_videos = []
     useful_file_dirs = []
     with tarfile.open(path, "r:gz") as archive:
         for member in archive.getmembers():
@@ -148,6 +158,7 @@ def search_tar(path, remove_video=False, root=True):
             member_extension = os.path.splitext(member.name)[-1]
             if member_extension not in video_extensions:
                 useful_file_dirs.append(member.name)
+                # identified_videos.append((member.name, member_extension, os.path.split(path)[1], member.name))
             else:
                 parent_dir = Path(path).parent.parent.parts[-1]
                 specific_pmc = parent_dir[parent_dir.find("PMC"):parent_dir.find("_")]
@@ -155,6 +166,8 @@ def search_tar(path, remove_video=False, root=True):
 
     # only run if the function is at the root level i.e not in a recursive loop, about to do the final return
     if root and remove_video and useful_file_dirs:
+        for video in identified_videos:
+            videos_removed.append(video)
         temp_name = 'temp_' + secrets.token_hex(5) + '.tar.gz'
         with tarfile.TarFile(path, 'r') as tar_read:
             # Create a temporary ZIP file
@@ -169,8 +182,19 @@ def search_tar(path, remove_video=False, root=True):
         # Replace the original ZIP file with the new one
         os.remove(path)
         shutil.move(temp_name, path)
+    elif root and remove_video:
+        for video in identified_videos:
+            videos_removed.append(video)
 
-    return useful_file_dirs
+    return useful_file_dirs, identified_videos
+
+
+def format_excluded_pmc(pmc):
+    if "PMC" not in pmc:
+        pmc = F"PMC{pmc}"
+    if "_supplementary" not in pmc:
+        pmc = F"{pmc}_supplementary"
+    return pmc
 
 
 def generate_video_log(videos, log_path):
@@ -182,12 +206,12 @@ def generate_video_log(videos, log_path):
                 archive = url.strip("\n").split("/")[-1]
                 for pmc_dir, pmc_label, file_or_archive, archived_file in videos_removed:
                     if archive == file_or_archive and not archived_file:
-                        f_out.write(F"{pmc_dir}\t{url}\n")
+                        f_out.write(F"{format_excluded_pmc(pmc_dir)}\t{url}\n")
                         break
                     elif archive == file_or_archive and archived_file:
-                        f_out.write(F"{pmc_dir}\t{url}\t{archived_file}\n")
+                        f_out.write(F"{format_excluded_pmc(pmc_dir)}\t{url}\t{archived_file}\n")
             else:
-                f_out.write(F"{pmc}\t{url}\n")
+                f_out.write(F"{format_excluded_pmc(pmc)}\t{url}\n")
 
 
 def copy_download_log(input_directory):
@@ -203,17 +227,19 @@ def copy_download_log(input_directory):
                 folder, pmcid, url = line.split("\t")
                 url = url.strip("\n")
                 file = url.strip("\n").split("/")[-1]
+
+                # is file an archive that has one or more contained files excluded?
+                if file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
+                              if archived_file]:
+                    excluded_log_entries.append((pmcid, url, file))
+                    continue
                 #  is file an archive that was excluded entirely?
                 if file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
                             if not archived_file]:
                     excluded_log_entries.append((pmcid, url, None))
                     continue
-                # is file an archive that has one or more contained files excluded?
-                elif file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
-                              if archived_file]:
-                    excluded_log_entries.append((pmcid, url, file))
                 # ignore any video log entries
-                if any([file.endswith(x) for x in video_extensions]):
+                elif any([file.endswith(x) for x in video_extensions]):
                     continue
                 included_out.write(F"{pmcid}_supplementary\t{pmcid}\t{url}\n")
     except IOError as io:
