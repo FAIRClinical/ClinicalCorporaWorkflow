@@ -93,7 +93,7 @@ def load_pmc_bioc(file_path):
 
 def filter_manually(dir, title):
     results = []
-    for file in [x for x in os.listdir(dir) if x.endswith(".xml")]:
+    for file in [x for x in os.listdir(dir) if x.endswith(".xml") and not x.startswith("._")]:
         file_path = os.path.join(dir, file)
         os.rename(file_path, file_path.replace(".xml", ".json"))
         file_path = file_path.replace(".xml", ".json")

@@ -195,7 +195,7 @@ def __extract_pdf_data(locations=None, file=None):
                               encoding="utf-8") as tables_out:
                         json.dump(tables, tables_out, indent=4)
                 text, images, out_meta, tables, file = None, None, None, None, None
-                return True
+                return True, ""
             else:
                 text, images, out_meta, tables, file = None, None, None, None, None
                 return False, ""
@@ -336,7 +336,7 @@ def __extract_powerpoint_data(locations=None, file=None):
             return False
 
 
-def process_and_update_zip(archive_path, filenames):
+def process_and_update_zip(archive_path):
     # Unique temp subdirectory for this archive
     temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
     processed_dir = Path(*Path(archive_path).parts[:-1]) / "Processed"
@@ -378,7 +378,7 @@ def process_and_update_zip(archive_path, filenames):
     return success, failed_files
 
 
-def process_and_update_tar(archive_path, filenames):
+def process_and_update_tar(archive_path):
     # Unique temp subdirectory for this archive
     temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
 
@@ -411,7 +411,7 @@ def process_and_update_tar(archive_path, filenames):
                 failed_files.append(filename)
 
     # Cleanup: Remove the temporary directory and extracted files
-    for filename in filenames:
+    for filename in os.listdir(temp_dir):
         os.remove(os.path.join(temp_dir, filename))
     os.rmdir(temp_dir)
     return success, failed_files
@@ -432,21 +432,9 @@ def process_archive_file(locations=None, file=None):
         extensions = {}
         file_extension = file[file.rfind('.'):].lower()
         if file_extension in zip_extensions:
-            extensions = search_zip(file)
-            processable_files = [extensions[y] for y in extensions.keys() if y in supplementary_types]
-            if processable_files:
-                success, failed_files = process_and_update_zip(file, processable_files)
-            else:
-                print(F"Removed: {file}")
-                os.remove(file)
+            success, failed_files = process_and_update_zip(file)
         elif file_extension in tar_extensions or file_extension in gzip_extensions:
-            extensions = search_tar(file)
-            processable_files = [extensions[y] for y in extensions.keys() if y in supplementary_types]
-            if processable_files:
-                success, failed_files = process_and_update_tar(file, processable_files)
-            else:
-                print(F"Removed: {file}")
-                os.remove(file)
+            success, failed_files = process_and_update_tar(file)
     return success, failed_files
 
 

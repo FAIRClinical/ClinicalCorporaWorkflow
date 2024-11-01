@@ -132,7 +132,19 @@ def process_new_archive(new_archive_path):
     get_supplementary_files(full_text_folder)
     execute_movie_removal(supplementary_output_path)
     standardise_supplementary_files(supplementary_output_path)
+    # Clean unnecessary unprocessed log records
+    clean_unprocessed_log(supplementary_output_path)
     archive_final_output(new_archive_path)
+
+
+def clean_unprocessed_log(path):
+    log_path = Path(path) / F"{Path(path).stem}_unprocessed.tsv"
+    unprocessed_rows = []
+    with open(log_path, "r", encoding="utf-8") as f_in:
+        unprocessed_rows = f_in.readlines()
+    unprocessed_rows = [x for x in unprocessed_rows if "temp_extracted_files" not in x]
+    with open(log_path, "w", encoding="utf-8") as f_out:
+        f_out.writelines(unprocessed_rows)
 
 
 def onerror(func, path, exc_info):
@@ -386,7 +398,6 @@ def run():
     Workflow entry point
     """
     check_pmc_bioc_updates()
-
 
 if __name__ == "__main__":
     run()

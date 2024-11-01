@@ -14,6 +14,7 @@ logging.basicConfig(filename="WordExtractor.log", level=logging.ERROR, format="%
 
 filename = ""
 
+
 def replace_unicode(text):
     """
     Replaces specific Unicode characters in a given text.
@@ -46,6 +47,7 @@ def replace_unicode(text):
         else:
             clean_text = text
         return clean_text
+
 
 class BioCText:
     def __init__(self, text):
@@ -251,7 +253,9 @@ def get_text_bioc(paragraphs, filename, textsource="Auto-CORPus"):
                 "inputfile": filename,
                 "textsource": textsource,
                 "infons": {},
-                "passages": [p for sublist in [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in sublist],
+                "passages": [p for sublist in
+                             [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in
+                             sublist],
                 "annotations": [],
                 "relations": []
             }
@@ -346,10 +350,13 @@ def process_word_document(file):
                 else:
                     logging.info(
                         F"File {file} could not be processed correctly. It is likely a pre-2007 word document or problematic.")
+                    return False
             else:
                 logging.info(F"File {file} could not be processed correctly.")
+                return False
         except Exception as ex:
             logging.info(F"File {file} raised the error:\n{ex}")
+            return False
     else:
         return False
 
@@ -358,11 +365,11 @@ def process_word_document(file):
         with open(F"{output_path}_tables.json", "w+", encoding="utf-8") as f_out:
             json.dump(get_tables_bioc(tables, Path(file).name), f_out)
 
-
     # Save paragraphs as a JSON file
-    if paragraphs and paragraphs[0][1]:
-        with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
-            json.dump(get_text_bioc(paragraphs, Path(file).name), f_out)
+    if paragraphs:
+        if paragraphs[0][1]:
+            with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
+                json.dump(get_text_bioc(paragraphs, Path(file).name), f_out)
 
     if (not paragraphs and not paragraphs[0][1]) and not tables:
         return False

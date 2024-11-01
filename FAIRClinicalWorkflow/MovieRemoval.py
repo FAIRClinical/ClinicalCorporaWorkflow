@@ -105,7 +105,7 @@ def search_zip(path, remove_video=False, root=True):
                     identified_videos.extend(nested_identified_videos)
                 if nested_useful_dirs:
                     useful_file_dirs.extend(nested_useful_dirs)
-            elif "." in member_extension and "_MACOSX" not in member.filename:
+            elif "_MACOSX" not in member.filename:
                 if member_extension not in video_extensions:
                     useful_file_dirs.append(member.filename)
                 else:
@@ -192,8 +192,8 @@ def search_tar(path, remove_video=False, root=True):
 def format_excluded_pmc(pmc):
     if "PMC" not in pmc:
         pmc = F"PMC{pmc}"
-    if "_supplementary" not in pmc:
-        pmc = F"{pmc}_supplementary"
+    if "_supplementary" in pmc:
+        pmc = pmc.replace("_supplementary", "")
     return pmc
 
 
@@ -203,13 +203,7 @@ def generate_video_log(videos, log_path):
     with open(video_log_path, "w+", encoding="utf-8") as f_out:
         for pmc, url, file in videos:
             if file:
-                archive = url.strip("\n").split("/")[-1]
-                for pmc_dir, pmc_label, file_or_archive, archived_file in videos_removed:
-                    if archive == file_or_archive and not archived_file:
-                        f_out.write(F"{format_excluded_pmc(pmc_dir)}\t{url}\n")
-                        break
-                    elif archive == file_or_archive and archived_file:
-                        f_out.write(F"{format_excluded_pmc(pmc_dir)}\t{url}\t{archived_file}\n")
+                f_out.write(F"{format_excluded_pmc(pmc)}\t{url}\t{file}\n")
             else:
                 f_out.write(F"{format_excluded_pmc(pmc)}\t{url}\n")
 
@@ -228,18 +222,22 @@ def copy_download_log(input_directory):
                 url = url.strip("\n")
                 file = url.strip("\n").split("/")[-1]
 
-                # is file an archive that has one or more contained files excluded?
-                if file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
-                              if archived_file]:
-                    excluded_log_entries.append((pmcid, url, file))
-                    continue
-                #  is file an archive that was excluded entirely?
-                if file in [file_or_archive for (pmc_dir, pmc_label, file_or_archive, archived_file) in videos_removed
-                            if not archived_file]:
-                    excluded_log_entries.append((pmcid, url, None))
-                    continue
-                # ignore any video log entries
-                elif any([file.endswith(x) for x in video_extensions]):
+                if any([file.endswith(x) for x in archive_extensions]):
+                    # retrieve the archive to exclude (if all archived files are videos) and all individual video
+                    # files within it.
+                    videos_contained = [(file_or_archive, archived_file) for (pmc_dir, pmc_label, file_or_archive,
+                                                                              archived_file) in videos_removed
+                                        if file_or_archive == file]
+                    if videos_contained:
+                        for (file_or_archive, archived_file) in videos_contained:
+                            if (pmcid, url, archived_file) not in excluded_log_entries:
+                                excluded_log_entries.append((pmcid, url, archived_file))
+                        continue
+
+                # ignore any standard (not archive related) video log entries
+                elif any([file.lower().endswith(x) for x in video_extensions]):
+                    if (pmcid, url, None) not in excluded_log_entries:
+                        excluded_log_entries.append((pmcid, url, None))
                     continue
                 included_out.write(F"{pmcid}_supplementary\t{pmcid}\t{url}\n")
     except IOError as io:

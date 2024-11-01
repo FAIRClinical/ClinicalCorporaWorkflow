@@ -123,6 +123,7 @@ def build_data_rows(structure):
 
 def print_output(extensions, input_path):
     output_msg = ""
+    nested_only_stats = {}
     # Print directory level summaries
     for directory in unique_directories.keys():
         if any([x for x in archive_extensions if directory[-1] in x]):
@@ -142,6 +143,12 @@ def print_output(extensions, input_path):
         output_msg += F"{cleaned_path}\n"
         directory_stats = unique_directories[directory]
         directory_total = 0
+        if any([x for x in archive_extensions if directory.endswith(x)]):
+            for extension in directory_stats.keys():
+                if extension not in nested_only_stats.keys():
+                    nested_only_stats[extension] = directory_stats[extension]
+                else:
+                    nested_only_stats[extension]["total"] += directory_stats[extension]["total"]
         for extension in directory_stats.keys():
             total = directory_stats[extension]["total"]
             output_msg += F"{extension}: {total} files\n"
@@ -151,10 +158,22 @@ def print_output(extensions, input_path):
         print("-----------------------")
         output_msg += F"Total: {directory_total} files\n"
         output_msg += F"-----------------------\n"
-    total_file_count = 0
     print("-- Aggregate counts --")
     output_msg += "-- Aggregate counts --\n"
+    total_file_count = 0
     for extension, stats in sorted(extensions.items()):
+        total = stats['total']
+        total_file_count += total
+        print(F"{extension}: {total} files")
+        output_msg += F"{extension}: {total} files\n"
+    print(F"Total: {total_file_count} files")
+    output_msg += F"Total: {total_file_count} files\n"
+    print("-----------------------")
+    output_msg += F"-----------------------\n"
+    print("-- Archived Files --")
+    output_msg += "-- Archived Files --\n"
+    total_file_count = 0
+    for extension, stats in sorted(nested_only_stats.items()):
         total = stats['total']
         total_file_count += total
         print(F"{extension}: {total} files")
