@@ -367,9 +367,8 @@ def process_word_document(file):
 
     # Save paragraphs as a JSON file
     if paragraphs:
-        if paragraphs[0][1]:
-            with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
-                json.dump(get_text_bioc(paragraphs, Path(file).name), f_out)
+        with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
+            json.dump(get_text_bioc(paragraphs, Path(file).name), f_out)
 
     if (not paragraphs and not paragraphs[0][1]) and not tables:
         return False
