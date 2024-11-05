@@ -18,10 +18,12 @@ def generate_title_list(dir, search_str):
         for id, title, subtitle in article_title_list:
             if "PMC" not in id:
                 id = F"PMC{id}"
+            title = title.replace("\t", " ")
             if search_str.lower() in title.lower():
                 f_out.write(F"{id}\t{title}\n")
             else:
-                f_out.write(F"{id}\t{title}\t{subtitle}\n")
+                subtitle = subtitle.replace("\t", " ")
+                f_out.write(F"{id}\t{title} {subtitle}\n")
 
 
 def scan_bioc_files(results):

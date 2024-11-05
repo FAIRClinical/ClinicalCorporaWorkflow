@@ -7,7 +7,6 @@ class TestLogRecords:
         self.pmc_set = set_name
 
     def test_title_log(self):
-        # TODO: Solve the problem of tab characters being included legitimately in the article title/subtitle.
         log_path = Path(__file__).parent.joinpath("TestData") / F"{self.pmc_set}_json_ascii" / F"{self.pmc_set}_json_ascii_articles.tsv"
         assert log_path.exists()
         assert log_path.is_file()
@@ -21,16 +20,12 @@ class TestLogRecords:
                 assert article_path.is_file()
                 with open(article_path, "r", encoding="utf-8") as article_f_in:
                     bioc_content = biocjson.load(article_f_in)
-                file_title = bioc_content.documents[0].passages[0].text
-                if "\t" in title:
-                    file_subtitle = bioc_content.documents[0].passages[0].infons["subtitle"]
-                    title, subtitle = title.split("\t")
-                    assert title == file_title
-                    assert subtitle == file_subtitle
-                else:
-                    assert title == file_title
+                file_title = bioc_content.documents[0].passages[0].text.replace("\t", " ")
+                if "subtitle" in bioc_content.documents[0].passages[0].infons:
+                    file_title = file_title + " " + bioc_content.documents[0].passages[0].infons["subtitle"]
+                assert title == file_title or file_title.startswith(title)
                 logged_articles.append(pmc_id)
-        unlogged_articles = [x for x in log_path.parent.iterdir() if x.is_file() and x.endswith(".json")]
+        unlogged_articles = [x.name for x in log_path.parent.iterdir() if x.is_file() and str(x).endswith(".json") and x.name.rstrip(".json") not in logged_articles]
         assert not unlogged_articles
 
 
