@@ -22,7 +22,7 @@ def count_full_text_articles(input_archive_path):
 
 def __main():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("-i", "--input", required=True, help="Input directory")
+    arg_parser.add_argument("-i", "--input", required=True, help="Path to the PMC archive to scan")
     args = arg_parser.parse_args()
     article_count = count_full_text_articles(args.input)
     print(F"Number of files found: {article_count}")
