@@ -29,7 +29,7 @@ def generate_title_list(pubs_path, output_path):
     for file in [x for x in os.listdir(pubs_path) if x.endswith(".json")]:
         with open(os.path.join(pubs_path, file), "r") as f_in:
             article = biocjson.load(f_in)
-            article_title_list.append((article.documents[0].id, article.documents[0].passages[0].text))
+            article_title_list.append((article.documents[0].id, article.documents[0].passages[0].text.replace("\t", " ")))
     article_title_list = sorted(article_title_list, key=lambda x: x[0])
     with open(os.path.join(output_path, F"{main_folder}_articles.tsv"), "w+", encoding="utf-8") as f_out:
         for id, title in article_title_list:

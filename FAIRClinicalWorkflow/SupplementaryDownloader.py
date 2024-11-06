@@ -6,7 +6,6 @@ import sys
 import time
 from os.path import isfile, join, exists
 from pathlib import Path
-from time import sleep
 import requests
 from bioc import biocjson
 from lxml import etree
