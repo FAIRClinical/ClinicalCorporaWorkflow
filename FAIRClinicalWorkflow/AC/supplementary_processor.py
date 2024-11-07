@@ -21,6 +21,7 @@ from marker.convert import convert_single_pdf
 from marker.models import load_all_models
 from marker.output import save_markdown
 
+from FAIRClinicalWorkflow.MovieRemoval import log_unprocessed_supplementary_file
 from FAIRClinicalWorkflow.image_extractor import get_ocr_results, get_sibils_ocr
 from FAIRClinicalWorkflow.powerpoint_extractor import get_powerpoint_text
 
@@ -373,6 +374,8 @@ def process_and_update_zip(archive_path):
                     failed_files.append(file_path)
             else:
                 failed_files.append(filename)
+    for file in failed_files:
+        log_unprocessed_supplementary_file(archive_path, file, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent))
 
     # Cleanup: Remove the temporary directory and extracted files
     for filename in os.listdir(temp_dir):
@@ -412,6 +415,9 @@ def process_and_update_tar(archive_path):
                             success = True
             else:
                 failed_files.append(filename)
+
+    for file in failed_files:
+        log_unprocessed_supplementary_file(archive_path, file, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent))
 
     # Cleanup: Remove the temporary directory and extracted files
     for filename in os.listdir(temp_dir):
