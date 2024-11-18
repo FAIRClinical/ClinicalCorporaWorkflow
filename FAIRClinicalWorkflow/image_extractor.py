@@ -13,15 +13,15 @@ def get_ocr_results(file):
         if response.status_code == 200:
             result = response.json()
             paragraphs = [x for x in result["ocr_output"].split("\n") if x]
-            return paragraphs, "https://ocrweb.text-analytics.ch/"
+            return paragraphs, "https://ocrweb.text-analytics.ch/", ""
         else:
-            return None, "https://ocrweb.text-analytics.ch/"
+            return None, "https://ocrweb.text-analytics.ch/", ""
     except ConnectionError as ce:
         print(ce)
-        return None, None
+        return None, None, "Connection failed with OCR API while attempting to retrieve OCR results."
     except Exception as e:
         print(F"get_ocr_results error occurred: {e}")
-        return None, None
+        return None, None, "Connection failed with OCR API while attempting to retrieve OCR results."
 
 
 def get_sibils_ocr(filename, pmcid):
@@ -32,13 +32,13 @@ def get_sibils_ocr(filename, pmcid):
         if response.status_code == 200:
             result = response.json()
             if "missing ids:" in result['warning']:
-                return None, url
+                return None, url, ""
             bioc_doc = result["sibils_article_set"][0]
-            return bioc_doc, url
-        return None, url
+            return bioc_doc, url, ""
+        return None, url, ""
     except ConnectionError as ce:
         print(ce)
-        return None, None
+        return None, None, "Connection failed with OCR API while attempting to retrieve OCR results."
     except Exception as e:
         print(F"get_sibils_ocr error occurred: {e}")
-        return None, None
+        return None, None, "Connection failed with OCR API while attempting to retrieve OCR results."

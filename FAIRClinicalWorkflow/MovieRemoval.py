@@ -232,6 +232,10 @@ def copy_download_log(input_directory):
                         for (file_or_archive, archived_file) in videos_contained:
                             if (pmcid, url, archived_file) not in excluded_log_entries:
                                 excluded_log_entries.append((pmcid, url, archived_file))
+                    if (file, None) in videos_contained:
+                        continue
+                    else:
+                        included_out.write(F"{pmcid}_supplementary\t{pmcid}\t{url}\n")
                         continue
 
                 # ignore any standard (not archive related) video log entries

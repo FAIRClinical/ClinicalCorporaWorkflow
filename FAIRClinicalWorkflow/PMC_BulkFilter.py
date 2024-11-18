@@ -100,7 +100,7 @@ def filter_manually(dir, title):
         os.rename(file_path, file_path.replace(".xml", ".json"))
         file_path = file_path.replace(".xml", ".json")
         # load file to ensure
-        bioc = load_pmc_bioc(file_path.replace(".xml", ".json"))
+        bioc = load_pmc_bioc(file_path)
         if title.lower() in bioc.documents[0].passages[0].text.lower():
             results.append(file_path)
         elif ("subtitle" in bioc.documents[0].passages[0].infons.keys() and

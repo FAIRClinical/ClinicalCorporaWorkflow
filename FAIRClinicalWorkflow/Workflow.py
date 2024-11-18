@@ -399,5 +399,6 @@ def run():
     """
     check_pmc_bioc_updates()
 
+
 if __name__ == "__main__":
     run()

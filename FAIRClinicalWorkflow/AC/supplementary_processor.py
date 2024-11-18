@@ -291,9 +291,9 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
     if file:
         base_dir, file_name = os.path.split(file)
         # Process the PDF document using a custom excel_extractor
-        text, url = get_sibils_ocr(file, pmcid)
+        text, url, reason = get_sibils_ocr(file, pmcid)
         if not text:
-            text, url = get_ocr_results(file)
+            text, url, reason = get_ocr_results(file)
         # If tables are extracted
         if text:
             base_dir = base_dir.replace("Raw", "Processed")
@@ -302,8 +302,9 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
                 # Generate BioC format representation of the tables
                 json_output = get_text_bioc(text, file, url)
                 json.dump(json_output, f_out, indent=4)
-            return True
-    return False
+            return True, reason
+        return False, reason
+    return False, ""
 
 
 def __extract_powerpoint_data(locations=None, file=None):
@@ -375,7 +376,7 @@ def process_and_update_zip(archive_path):
             else:
                 failed_files.append(filename)
     for file in failed_files:
-        log_unprocessed_supplementary_file(archive_path, file, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent))
+        log_unprocessed_supplementary_file(archive_path, file.filename, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent.parent))
 
     # Cleanup: Remove the temporary directory and extracted files
     for filename in os.listdir(temp_dir):
@@ -417,7 +418,7 @@ def process_and_update_tar(archive_path):
                 failed_files.append(filename)
 
     for file in failed_files:
-        log_unprocessed_supplementary_file(archive_path, file, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent))
+        log_unprocessed_supplementary_file(archive_path, file.name, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent.parent))
 
     # Cleanup: Remove the temporary directory and extracted files
     for filename in os.listdir(temp_dir):
@@ -477,7 +478,7 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
             success = __extract_spreadsheet_data(file=file)
 
         elif [1 for x in image_extensions if file.lower().endswith(x)]:
-            success = __extract_image_data(file=file, pmcid=pmcid)
+            success, reason = __extract_image_data(file=file, pmcid=pmcid)
 
         elif [1 for x in archive_extensions if file.lower().endswith(x)]:
             success, failed_files = process_archive_file(file=file)
