@@ -100,12 +100,17 @@ def get_file_extensions(folder_path):
 
 def get_archive_extensions(file_extension, root, file, folder_path):
     new_extensions = []
-    if file_extension in zip_extensions:
-        new_extensions = search_zip(os.path.join(root, file))
-    elif file_extension in tar_extensions:
-        new_extensions = search_tar(root, file, folder_path)
-    elif file_extension in gzip_extensions:
-        new_extensions = search_gzip(root, file, folder_path)
+    try:
+        if file_extension in zip_extensions:
+            new_extensions = search_zip(os.path.join(root, file))
+        elif file_extension in tar_extensions:
+            new_extensions = search_tar(root, file, folder_path)
+        elif file_extension in gzip_extensions:
+            new_extensions = search_gzip(root, file, folder_path)
+    except zipfile.BadZipfile:
+        return []
+    except tarfile.ReadError:
+        return []
     return new_extensions
 
 
