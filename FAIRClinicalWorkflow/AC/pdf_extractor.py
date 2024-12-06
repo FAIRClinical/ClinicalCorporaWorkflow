@@ -254,6 +254,11 @@ def get_text_bioc(parsed_texts, filename, textsource="Auto-CORPus"):
     Finally, the document is added to the collection using the `collection.add_document(document)` method,
     and the collection is returned as the converted texts in BioC format.
     """
+    passages = [p for sublist in [BioCText(replace_unicode(x)).__dict__["passages"] for x in parsed_texts] for p in sublist]
+    offset = 0
+    for p in passages:
+        p["offset"] = offset
+        offset += len(p["text"])
     # Create a BioC XML structure dictionary
     bioc = {
         "source": "Auto-CORPus (supplementary)",
@@ -266,7 +271,7 @@ def get_text_bioc(parsed_texts, filename, textsource="Auto-CORPus"):
                 "inputfile": str(Path(*Path(filename).parts[2:])),
                 "textsource": textsource,
                 "infons": {},
-                "passages": [p for sublist in [BioCText(replace_unicode(x)).__dict__["passages"] for x in parsed_texts] for p in sublist],
+                "passages": passages,
                 "annotations": [],
                 "relations": []
             }
