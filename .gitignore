@@ -2,3 +2,4 @@
 /FAIRClinicalWorkflow/file_versions.tsv
 *.tsv
 *.log
+/Tests/TestData/
