@@ -241,6 +241,13 @@ def get_text_bioc(paragraphs, filename, textsource="Auto-CORPus"):
         paragraphs = ["This is the first paragraph.", "This is the second paragraph."]
         bioc_xml = get_text_bioc(paragraphs)
     """
+    passages = [p for sublist in
+                             [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in
+                             sublist]
+    offset = 0
+    for p in passages:
+        p["offset"] = offset
+        offset += len(p["text"])
     # Create a BioC XML structure dictionary
     bioc = {
         "source": "Auto-CORPus (supplementary)",
@@ -253,9 +260,7 @@ def get_text_bioc(paragraphs, filename, textsource="Auto-CORPus"):
                 "inputfile": filename,
                 "textsource": textsource,
                 "infons": {},
-                "passages": [p for sublist in
-                             [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in
-                             sublist],
+                "passages": passages,
                 "annotations": [],
                 "relations": []
             }
