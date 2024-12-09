@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from bioc import biocjson
 pmc_set = "PMC105XXXXX"
@@ -101,3 +102,31 @@ def test_unprocessed_log():
                         assert (pmc_dir, file) not in logged_pmc_dirs
             else:
                 assert pmc_dir not in [x for (x, y) in logged_pmc_dirs]
+
+def check_bioc_fields(bioc_json):
+    # document offset
+    document_keys = bioc_json["documents"][0].keys()
+    assert "bioctype" not in document_keys
+    assert "inputfile" in document_keys
+    assert "textsource" in document_keys
+    # passage offsets
+    passage_keys = bioc_json["documents"][0]["passages"][0].keys()
+    assert "text" in passage_keys
+    assert "offset" in passage_keys
+    # validate offsets
+    for i, passage in enumerate(bioc_json["documents"][0]["passages"]):
+        if i == 0:
+            assert passage["offset"] == 0
+            continue
+        else:
+            assert (passage["offset"] == bioc_json["documents"][0]["passages"][i - 1]["offset"] +
+                    len(bioc_json["documents"][0]["passages"][i - 1]["text"]))
+
+
+
+def test_bioc_files():
+    test_dir = Path(__file__).joinpath("TestData")
+    for file in test_dir.rglob("*_bioc.json"):
+        with open(file, "r") as f_in:
+            bioc_json = json.load(f_in)
+        check_bioc_fields(bioc_json)
