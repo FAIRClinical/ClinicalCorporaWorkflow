@@ -363,12 +363,12 @@ def process_word_document(file):
     # Save tables as a JSON file
     if tables:
         with open(F"{output_path}_tables.json", "w+", encoding="utf-8") as f_out:
-            json.dump(get_tables_bioc(tables, Path(file).name), f_out)
+            json.dump(get_tables_bioc(tables, Path(file).name), f_out, indent=4)
 
     # Save paragraphs as a JSON file
     if paragraphs:
         with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
-            json.dump(get_text_bioc(paragraphs, Path(file).name), f_out)
+            json.dump(get_text_bioc(paragraphs, Path(file).name), f_out, indent=4)
 
     if (not paragraphs and not paragraphs[0][1]) and not tables:
         return False
