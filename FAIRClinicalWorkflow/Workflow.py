@@ -36,6 +36,8 @@ def parse_ftp_listing(line):
     date_str = " ".join(parts[5:8])
     try:
         date_modified = datetime.strptime(date_str, "%b %d %H:%M")
+        # if the year is now included, it is inferred as the current year as displayed in a browser
+        date_modified = date_modified.replace(year=datetime.now().year)
     except ValueError:
         date_modified = datetime.strptime(date_str, "%b %d %Y")
     filename = parts[8]
