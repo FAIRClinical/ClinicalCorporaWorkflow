@@ -63,7 +63,7 @@ class BioCText:
         offset = 0
         passages = []
         if type(text) is str:
-            text = text.split("\n")
+            text = text.split("\n\n")
         else:
             text = [x.split("\n") for x in text]
             temp = []
@@ -230,7 +230,7 @@ def get_text_bioc(parsed_texts, filename, textsource="Auto-CORPus"):
     Convert parsed texts into BioC format.
 
     Args:
-        parsed_texts (list): The parsed texts to be converted.
+        parsed_texts (str): The parsed texts to be converted.
 
     Returns:
         BioCCollection: The converted texts in BioC format.

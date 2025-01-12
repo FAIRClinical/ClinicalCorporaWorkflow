@@ -1,3 +1,4 @@
+import csv
 import logging
 import os
 import shutil
@@ -13,7 +14,7 @@ import regex
 from FAIRClinicalWorkflow.MovieRemoval import execute_movie_removal, video_extensions
 from FAIRClinicalWorkflow.PMC_BulkFilter import filter_manually as filter_articles
 from FAIRClinicalWorkflow.SupplementaryDownloader import process_directory as get_supplementary_files
-from AC.supplementary_processor import process_supplementary_files
+from AC.supplementary_processor import process_supplementary_files, _load_pdf_models
 
 # FTP connection
 ftp_server = "ftp.ncbi.nlm.nih.gov"
@@ -395,11 +396,26 @@ def archive_final_output(path):
             continue
 
 
+def __re_process_supplementary_set(set_no):
+    set_path = Path(f"Output/PMC{set_no}XXXXX_json_ascii_supplementary")
+    for file in set_path.rglob("*"):
+        if file.is_dir() and file.name == "Processed":
+            shutil.rmtree(file)
+            continue
+        if file.is_dir() or not "Raw" == file.parent.name:
+            continue
+        else:
+            if ".pdf" in file.name:
+                process_supplementary_files([str(file.absolute())])
+
+
 def run():
     """
     Workflow entry point
     """
     check_pmc_bioc_updates()
+    # _load_pdf_models()
+    # __re_process_supplementary_set("070")
 
 
 if __name__ == "__main__":

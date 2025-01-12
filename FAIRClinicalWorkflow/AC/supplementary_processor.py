@@ -2,25 +2,24 @@ import gc
 import json
 import os.path
 import secrets
+import shutil
 import sys
 import tarfile
 import zipfile
 import PyPDF2
+import traceback
 from os.path import exists
 from pathlib import Path
-
-import marker.utils
 from bioc import biocjson
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
+from marker.output import text_from_rendered
 
 from FAIRClinicalWorkflow.AC.file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
     gzip_extensions, search_zip, search_tar, archive_extensions
 from FAIRClinicalWorkflow.AC.pdf_extractor import convert_pdf_result, get_text_bioc
 from FAIRClinicalWorkflow.AC.word_extractor import process_word_document
 from FAIRClinicalWorkflow.AC.excel_extractor import process_spreadsheet, get_tables_bioc
-from marker.convert import convert_single_pdf
-from marker.models import load_all_models
-from marker.output import save_markdown
-
 from FAIRClinicalWorkflow.MovieRemoval import log_unprocessed_supplementary_file
 from FAIRClinicalWorkflow.image_extractor import get_ocr_results, get_sibils_ocr
 from FAIRClinicalWorkflow.powerpoint_extractor import get_powerpoint_text
@@ -29,13 +28,16 @@ word_extensions = [".doc", ".docx"]
 spreadsheet_extensions = [".csv", ".xls", ".xlsx", ".tsv"]
 image_extensions = [".jpg", ".png", ".jpeg", '.tif', '.tiff']
 supplementary_types = word_extensions + spreadsheet_extensions + image_extensions + [".pdf", ".pptx"]
-model_list = []
+
+pdf_converter = None
 
 
-def load_models():
-    global model_list
-    if not model_list:
-        model_list = load_all_models()
+def _load_pdf_models():
+    global pdf_converter
+    if pdf_converter is None:
+        pdf_converter = PdfConverter(
+            artifact_dict=create_model_dict(),
+        )
 
 
 def __extract_word_data(locations=None, file=None):
@@ -150,16 +152,15 @@ def __extract_pdf_data(locations=None, file=None):
         None
 
     """
-    load_models()
     base_dir, file_name = os.path.split(file)
     if locations:
         pdf_locations = locations[".pdf"]["locations"]
         # Iterate over the file locations of PDF documents
         for x in pdf_locations:
             base_dir, file_name = os.path.split(x)
-            # Process the PDF document using a custom pdf_extractor
-            text, images, out_meta = convert_single_pdf(fname=x, model_lst=model_list,
-                                                        langs=["English"])
+            # Process the PDF document using marker-pdf
+            rendered = pdf_converter(x)
+            text, images, out_meta = text_from_rendered(rendered)
             text, tables = convert_pdf_result([], text, x)
             # Write the extracted tables & texts to JSON files
             # if tables:
@@ -170,7 +171,6 @@ def __extract_pdf_data(locations=None, file=None):
                     biocjson.dump(text, text_out, indent=4)
     if file:
         try:
-            marker.utils.flush_cuda_memory()
             # Check the size of the PDF in pages
             total_pages = 0
             with open(file, 'rb') as f_in:
@@ -182,14 +182,18 @@ def __extract_pdf_data(locations=None, file=None):
                 print(F"PDF file contains over 100 pages, skipping: {file}")
                 return False, "PDF file contains over 100 pages. This file was skipped."
 
-            text, images, out_meta = convert_single_pdf(fname=file, model_lst=model_list, langs=["English"])
-            text, tables = extract_table_from_text(text)
-            text, tables = convert_pdf_result(tables, [text], file)
+            rendered = pdf_converter(file)
+            text, images, out_meta = text_from_rendered(rendered)
+            text, tables = convert_pdf_result([], text, file)
+            # text, tables = extract_table_from_text(text)
+            # text, tables = convert_pdf_result(tables, [text], file)
             if text or tables:
                 base_dir = base_dir.replace("Raw", "Processed")
+                output_path = F"{os.path.join(base_dir, file_name + '_bioc.json')}"
+                if not Path(output_path).parent.exists():
+                    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                 if text:
-                    with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+",
-                              encoding="utf-8") as text_out:
+                    with open(output_path, "w+", encoding="utf-8") as text_out:
                         biocjson.dump(text, text_out, indent=4)
                 if tables:
                     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+",
@@ -201,6 +205,7 @@ def __extract_pdf_data(locations=None, file=None):
                 text, images, out_meta, tables, file = None, None, None, None, None
                 return False, ""
         except Exception as ex:
+            trace = traceback.format_exc()
             print(ex)
             text, images, out_meta, tables, file = None, None, None, None, None
             return False, ""
@@ -247,7 +252,10 @@ def __extract_spreadsheet_data(locations=None, file=None):
         if tables:
             base_dir = base_dir.replace("Raw", "Processed")
             # Create a JSON output file for the extracted tables
-            with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as f_out:
+            output_path = F"{os.path.join(base_dir, file_name + '_tables.json')}"
+            if not Path(output_path).exists():
+                Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "w+", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_tables_bioc(tables, file)
                 json.dump(json_output, f_out, indent=4)
@@ -298,7 +306,9 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
         if text:
             base_dir = base_dir.replace("Raw", "Processed")
             # Create a JSON output file for the extracted tables
-            with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as f_out:
+            output_path = F"{os.path.join(base_dir, file_name + '_bioc.json')}"
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "w+", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_text_bioc(text, file, url)
                 json.dump(json_output, f_out, indent=4)
@@ -343,7 +353,6 @@ def process_and_update_zip(archive_path):
     temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
     processed_dir = Path(*Path(archive_path).parts[:-1]) / "Processed"
 
-
     # Create the unique subdirectory
     os.makedirs(temp_dir, exist_ok=True)
 
@@ -367,6 +376,8 @@ def process_and_update_zip(archive_path):
                     file_path = os.path.join(temp_dir, filename.filename)
                     output_path = os.path.join(str(Path(archive_path).parent).replace("Raw", "Processed"),
                                                str(os.path.basename(file_path)) + new_result_file)
+                    if not Path(output_path).parent.exists():
+                        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                     if os.path.exists(file_path + new_result_file):
                         with open(file_path + new_result_file, "r") as f_in, open(output_path, "w+") as f_out:
                             f_out.write(f_in.read())
@@ -376,12 +387,11 @@ def process_and_update_zip(archive_path):
             else:
                 failed_files.append(filename)
     for file in failed_files:
-        log_unprocessed_supplementary_file(archive_path, file.filename, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent.parent))
+        log_unprocessed_supplementary_file(archive_path, file.filename, F"Failed to extract text from the document.",
+                                           str(Path(archive_path).parent.parent.parent))
 
     # Cleanup: Remove the temporary directory and extracted files
-    for filename in os.listdir(temp_dir):
-        os.remove(os.path.join(temp_dir, filename))
-    os.rmdir(temp_dir)
+    shutil.rmtree(temp_dir, ignore_errors=True)
     return success, failed_files
 
 
@@ -418,7 +428,8 @@ def process_and_update_tar(archive_path):
                 failed_files.append(filename)
 
     for file in failed_files:
-        log_unprocessed_supplementary_file(archive_path, file.name, F"Failed to extract text from the document.", str(Path(archive_path).parent.parent.parent))
+        log_unprocessed_supplementary_file(archive_path, file.name, F"Failed to extract text from the document.",
+                                           str(Path(archive_path).parent.parent.parent))
 
     # Cleanup: Remove the temporary directory and extracted files
     for filename in os.listdir(temp_dir):

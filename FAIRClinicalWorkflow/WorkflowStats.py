@@ -3,7 +3,7 @@ import sys
 import tarfile
 from pathlib import Path
 
-from AC.supplementary_processor import archive_extensions, image_extensions, word_extensions, spreadsheet_extensions
+from .AC.supplementary_processor import archive_extensions, image_extensions, word_extensions, spreadsheet_extensions
 
 powerpoint_extensions = [".pptx", ".ppt"]
 word_extensions.append(".txt")
