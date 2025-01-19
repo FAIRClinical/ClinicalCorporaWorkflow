@@ -10,6 +10,8 @@ import PyPDF2
 import traceback
 from os.path import exists
 from pathlib import Path
+
+import marker.output
 from bioc import biocjson
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
@@ -29,7 +31,7 @@ spreadsheet_extensions = [".csv", ".xls", ".xlsx", ".tsv"]
 image_extensions = [".jpg", ".png", ".jpeg", '.tif', '.tiff']
 supplementary_types = word_extensions + spreadsheet_extensions + image_extensions + [".pdf", ".pptx"]
 
-pdf_converter = None
+pdf_converter: PdfConverter = None
 
 
 def _load_pdf_models():
@@ -184,8 +186,9 @@ def __extract_pdf_data(locations=None, file=None):
 
             rendered = pdf_converter(file)
             text, images, out_meta = text_from_rendered(rendered)
-            text, tables = convert_pdf_result([], text, file)
-            # text, tables = extract_table_from_text(text)
+            text, tables = extract_table_from_text(text)
+            text, tables = convert_pdf_result(tables, text, file)
+
             # text, tables = convert_pdf_result(tables, [text], file)
             if text or tables:
                 base_dir = base_dir.replace("Raw", "Processed")
