@@ -2,6 +2,7 @@ import csv
 import logging
 import os
 import shutil
+import sys
 import tarfile
 
 import ftplib
@@ -10,7 +11,10 @@ from datetime import datetime
 from pathlib import Path
 
 import regex
+from bioc import biocjson
 
+from FAIRClinicalWorkflow.AC.supplementary_processor import word_extensions
+from FAIRClinicalWorkflow.BioC_Utilities import apply_sentence_splitting
 from FAIRClinicalWorkflow.MovieRemoval import execute_movie_removal, video_extensions
 from FAIRClinicalWorkflow.PMC_BulkFilter import filter_manually as filter_articles
 from FAIRClinicalWorkflow.SupplementaryDownloader import process_directory as get_supplementary_files
@@ -25,7 +29,6 @@ logging.basicConfig(filename="Workflow_log.txt", filemode="a",
                     datefmt="%d-%m-%y %H:%M:%S", level=logging.INFO)
 
 logger = logging.getLogger("FAIRClinical Workflow")
-
 
 def parse_ftp_listing(line):
     """
@@ -395,9 +398,31 @@ def archive_final_output(path):
             print(f"An error occurred: {e}")
             continue
 
+def __identify_missing_processed_files(set_no, file_extensions=None):
+    set_path = Path(f"FAIRClinicalWorkflow/Output/PMC{set_no}XXXXX_json_ascii_supplementary")
+    raw, processed = [], []
+    for file in set_path.rglob("*"):
+        if file.is_dir():
+            continue
+        if file.is_dir() and file.name == "Processed":
+            continue
+        if "Raw" == file.parent.name:
+            if file_extensions:
+                if any([1 for x in file_extensions if file.name.lower().endswith(x)]):
+                    raw.append((file.name, file.absolute()))
+            else:
+                raw.append((file.name, file.absolute()))
+        elif "Processed" == file.parent.name:
+            processed.append(file.name.replace("_bioc.json", "").replace("_tables.json", ""))
+
+    unprocessed_files = [x[1] for x in raw if x[0] not in processed]
+    print(F"{len(unprocessed_files)} files were not processed.")
+    for unprocessed_file in unprocessed_files:
+        print(F"Unprocessed file: {unprocessed_file}")
+
 
 def __re_process_supplementary_set(set_no):
-    set_path = Path(f"Output/PMC{set_no}XXXXX_json_ascii_supplementary")
+    set_path = Path(f"FAIRClinicalWorkflow/Output/PMC{set_no}XXXXX_json_ascii_supplementary")
     for file in set_path.rglob("*"):
         if file.is_dir() and file.name == "Processed":
             shutil.rmtree(file)
@@ -405,17 +430,31 @@ def __re_process_supplementary_set(set_no):
         if file.is_dir() or not "Raw" == file.parent.name:
             continue
         else:
-            if ".pdf" in file.name:
+            if ".doc" in file.name.lower():
                 process_supplementary_files([str(file.absolute())])
 
+def test_sentence_splitting():
+    set_no = "070"
+    input_path = Path(f"FAIRClinicalWorkflow/Output/PMC{set_no}XXXXX_json_ascii_supplementary")
+    for file in input_path.rglob("*split_bioc.json"):
+        os.unlink(file)
+    for file in input_path.rglob("*_bioc.json"):
+        if file.parent.name != "Processed":
+            continue
+        with open(file, "r", encoding="utf-8") as f_in, open(str(file).replace("_bioc.json", "_split_bioc.json"), "w", encoding="utf-8") as f_out:
+            in_bioc = biocjson.load(f_in)
+            out_bioc = apply_sentence_splitting(in_bioc)
+            biocjson.dump(out_bioc, f_out)
 
 def run():
     """
     Workflow entry point
     """
+    _load_pdf_models()
     check_pmc_bioc_updates()
-    # _load_pdf_models()
     # __re_process_supplementary_set("070")
+    # __identify_missing_processed_files("070", word_extensions)
+    # test_sentence_splitting()
 
 
 if __name__ == "__main__":

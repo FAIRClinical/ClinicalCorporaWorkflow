@@ -2,12 +2,19 @@ import datetime
 import json
 import os
 import platform
+import re
 import subprocess
 from os.path import join
 import logging
 from pathlib import Path
+import sys
 
+from io import BytesIO
+
+import olefile
 from docx import Document
+
+from FAIRClinicalWorkflow.BioC_Utilities import apply_sentence_splitting
 
 logging.basicConfig(filename="WordExtractor.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %("
                                                                               "message)s")
@@ -298,28 +305,36 @@ def extract_tables(doc):
     return tables
 
 
-def convert_older_doc_file(file):
-    operating_system = platform.system()
-    if operating_system == "Windows":
-        import win32com.client
-        word = None
-        try:
-            word = win32com.client.DispatchEx("Word.Application")
-            doc = word.Documents.Open(file)
-            doc.SaveAs(file + ".docx", 16)
-            doc.Close()
-            word.Quit()
-            return True
-        except Exception as e:
-            return False
-        finally:
-            word.Quit()
-    elif operating_system == "linux":
-        subprocess.call(['unoconv', '-d', 'document', '--format=docx', file])
-        return True
-    elif operating_system == "mac":
-        return False
+def extract_text_from_doc(file_path):
+    """
+    Extracts text from a .doc file by converting it to .docx and processing with python-docx.
+    """
+    if not file_path.endswith(".doc"):
+        raise ValueError("Input file must be a .doc file.")
 
+    docx_path = file_path.replace(".doc", ".docx")
+    try:
+        output_dir = str(Path(file_path).parent.absolute())
+        # Convert .doc to .docx using LibreOffice
+        subprocess.run(
+            ["soffice", "--headless", "--convert-to", "docx", "--outdir", output_dir, file_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        # Extract text from the resulting .docx file
+        doc = Document(docx_path)
+        tables = extract_tables(doc)
+        text_sizes = set([int(x.style.font.size) for x in doc.paragraphs if x.style.font.size])
+        paragraphs = [(x.text, True if text_sizes and x.style.font.size and int(x.style.font.size) > min(
+            text_sizes) else False) for x in doc.paragraphs]
+        os.unlink(docx_path)
+        return paragraphs, tables
+    except FileNotFoundError:
+        return "LibreOffice 'soffice' command not found. Ensure it is installed and in your PATH."
+    except Exception as e:
+        return f"Error processing file {file_path}: {e}"
 
 def process_word_document(file):
     """
@@ -345,13 +360,12 @@ def process_word_document(file):
             text_sizes = set([int(x.style.font.size) for x in doc.paragraphs if x.style.font.size])
             paragraphs = [(x.text, True if text_sizes and x.style.font.size and int(x.style.font.size) > min(
                 text_sizes) else False) for x in doc.paragraphs]
-        except ValueError:
+        except ValueError as ve:
             if not file.lower().endswith(".docx"):
-                conversion_check = convert_older_doc_file(file)
-                if conversion_check:
+                paragraphs, tables = extract_text_from_doc(file)
+                if paragraphs:
                     logging.info(
                         F"File {file} was converted to .docx as a copy within the same directory for processing.")
-                    process_word_document(file + ".docx")
                 else:
                     logging.info(
                         F"File {file} could not be processed correctly. It is likely a pre-2007 word document or problematic.")
@@ -377,7 +391,11 @@ def process_word_document(file):
         if not Path(output_path).exists():
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
-            json.dump(get_text_bioc(paragraphs, Path(file).name), f_out)
+            # TODO: Test if datatype causes a problem
+            text = get_text_bioc(paragraphs, Path(file).name)
+            if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                text = apply_sentence_splitting(text)
+            json.dump(text, f_out, indent=4)
 
     if (not paragraphs or not paragraphs[0][1]) and not tables:
         return False

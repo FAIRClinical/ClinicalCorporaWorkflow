@@ -5,6 +5,9 @@ from FAIRClinicalWorkflow.WorkflowStats import powerpoint_extensions
 
 test_sets = [x for x in Path("TestData").iterdir() if x.is_dir()]
 
+file_stats = {"missing_files": [], "old_count": 0, "new_count": 0, "files": []}
+overall_stats = {"Spreadsheets": lambda x: file_stats, "Words": lambda x: file_stats, "Presentations": lambda x: file_stats,
+            "Images": lambda x: file_stats, "PDFs": lambda x: file_stats}
 
 def count_processed_file_types(files, print_output=False):
     word_count = 0
@@ -65,15 +68,8 @@ def test_output_quantity(test_supp_files, new_supp_files):
         else:
             print(F"{file_type} - same quantity")
 
-
-def test_pdf_quality(test_supp_files, new_supp_files):
-    for test_file in test_supp_files:
-        if test_file.name.endswith(".pdf_bioc.json"):
-            pass
-        elif test_file.name.endswith(".pdf_tables.json"):
-            pass
-        else:
-            continue
+        overall_stats[file_type]["new_count"] = new_value
+        overall_stats[file_type]["old_count"] = old_value
 
 
 def run_tests():
@@ -84,7 +80,6 @@ def run_tests():
         new_supp_files = [x for x in new_set.rglob("*") if "Processed" in str(x.parent) and x.is_file()]
 
         test_output_quantity(test_supp_files, new_supp_files)
-        test_pdf_quality(test_supp_files, new_supp_files)
 
 
 run_tests()

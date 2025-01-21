@@ -22,6 +22,7 @@ from FAIRClinicalWorkflow.AC.file_extension_analysis import get_file_extensions,
 from FAIRClinicalWorkflow.AC.pdf_extractor import convert_pdf_result, get_text_bioc
 from FAIRClinicalWorkflow.AC.word_extractor import process_word_document
 from FAIRClinicalWorkflow.AC.excel_extractor import process_spreadsheet, get_tables_bioc
+from FAIRClinicalWorkflow.BioC_Utilities import apply_sentence_splitting
 from FAIRClinicalWorkflow.MovieRemoval import log_unprocessed_supplementary_file
 from FAIRClinicalWorkflow.image_extractor import get_ocr_results, get_sibils_ocr
 from FAIRClinicalWorkflow.powerpoint_extractor import get_powerpoint_text
@@ -118,10 +119,10 @@ def extract_table_from_text(text):
                 cells = [cell.strip() for cell in line.split('|') if not all(x in "|-" for x in cell)]
                 if cells:
                     # Remove empty cells that may result from leading/trailing pipes
-                    if cells[0] == '':
-                        cells.pop(0)
-                    if cells[-1] == '':
-                        cells.pop(-1)
+                    # if cells[0] == '':
+                    #     cells.pop(0)
+                    # if cells[-1] == '':
+                    #     cells.pop(-1)
                     rows.append(cells)
 
         # Determine the maximum number of columns in the table
@@ -170,7 +171,10 @@ def __extract_pdf_data(locations=None, file=None):
             #         json.dump(tables, tables_out, indent=4)
             if text:
                 with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as text_out:
-                    biocjson.dump(text, text_out, indent=4)
+                    if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                        biocjson.dump(apply_sentence_splitting(text), text_out, indent=4)
+                    else:
+                        biocjson.dump(text, text_out, indent=4)
     if file:
         try:
             # Check the size of the PDF in pages
@@ -187,7 +191,7 @@ def __extract_pdf_data(locations=None, file=None):
             rendered = pdf_converter(file)
             text, images, out_meta = text_from_rendered(rendered)
             text, tables = extract_table_from_text(text)
-            text, tables = convert_pdf_result(tables, text, file)
+            text, tables = convert_pdf_result(tables, [text], file)
 
             # text, tables = convert_pdf_result(tables, [text], file)
             if text or tables:
@@ -197,7 +201,10 @@ def __extract_pdf_data(locations=None, file=None):
                     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                 if text:
                     with open(output_path, "w+", encoding="utf-8") as text_out:
-                        biocjson.dump(text, text_out, indent=4)
+                        if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                            biocjson.dump(apply_sentence_splitting(text), text_out, indent=4)
+                        else:
+                            biocjson.dump(text, text_out, indent=4)
                 if tables:
                     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+",
                               encoding="utf-8") as tables_out:
@@ -314,6 +321,8 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
             with open(output_path, "w+", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_text_bioc(text, file, url)
+                if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                    json_output = apply_sentence_splitting(json_output)
                 json.dump(json_output, f_out, indent=4)
             return True, reason
         return False, reason
@@ -343,6 +352,8 @@ def __extract_powerpoint_data(locations=None, file=None):
             if text:
                 base_dir = base_dir.replace("Raw", "Processed")
                 with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as text_out:
+                    if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                        text = apply_sentence_splitting(text)
                     biocjson.dump(text, text_out, indent=4)
                 return True
             else:
