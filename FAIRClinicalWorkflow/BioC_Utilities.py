@@ -3,8 +3,7 @@ from pathlib import Path
 from bioc import biocjson, biocxml, BioCCollection, BioCSentence
 import argparse
 
-from SIBiLS_sentence_splitter import sentence_split
-
+from FAIRClinicalWorkflow.SIBiLS_sentence_splitter import sentence_split
 
 def convert_bioc_format(file, output_type):
     """

@@ -30,6 +30,7 @@ logging.basicConfig(filename="Workflow_log.txt", filemode="a",
 
 logger = logging.getLogger("FAIRClinical Workflow")
 
+
 def parse_ftp_listing(line):
     """
     Parse a line from an FTP directory listing.
@@ -398,8 +399,9 @@ def archive_final_output(path):
             print(f"An error occurred: {e}")
             continue
 
+
 def __identify_missing_processed_files(set_no, file_extensions=None):
-    set_path = Path(f"FAIRClinicalWorkflow/Output/PMC{set_no}XXXXX_json_ascii_supplementary")
+    set_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
     raw, processed = [], []
     for file in set_path.rglob("*"):
         if file.is_dir():
@@ -422,7 +424,7 @@ def __identify_missing_processed_files(set_no, file_extensions=None):
 
 
 def __re_process_supplementary_set(set_no):
-    set_path = Path(f"FAIRClinicalWorkflow/Output/PMC{set_no}XXXXX_json_ascii_supplementary")
+    set_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
     for file in set_path.rglob("*"):
         if file.is_dir() and file.name == "Processed":
             shutil.rmtree(file)
@@ -430,27 +432,30 @@ def __re_process_supplementary_set(set_no):
         if file.is_dir() or not "Raw" == file.parent.name:
             continue
         else:
-            if ".doc" in file.name.lower():
+            if "." not in file.name.lower():
                 process_supplementary_files([str(file.absolute())])
+
 
 def test_sentence_splitting():
     set_no = "070"
-    input_path = Path(f"FAIRClinicalWorkflow/Output/PMC{set_no}XXXXX_json_ascii_supplementary")
+    input_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
     for file in input_path.rglob("*split_bioc.json"):
         os.unlink(file)
     for file in input_path.rglob("*_bioc.json"):
         if file.parent.name != "Processed":
             continue
-        with open(file, "r", encoding="utf-8") as f_in, open(str(file).replace("_bioc.json", "_split_bioc.json"), "w", encoding="utf-8") as f_out:
+        with open(file, "r", encoding="utf-8") as f_in, open(str(file).replace("_bioc.json", "_split_bioc.json"), "w",
+                                                             encoding="utf-8") as f_out:
             in_bioc = biocjson.load(f_in)
             out_bioc = apply_sentence_splitting(in_bioc)
             biocjson.dump(out_bioc, f_out)
+
 
 def run():
     """
     Workflow entry point
     """
-    _load_pdf_models()
+    # _load_pdf_models()
     check_pmc_bioc_updates()
     # __re_process_supplementary_set("070")
     # __identify_missing_processed_files("070", word_extensions)

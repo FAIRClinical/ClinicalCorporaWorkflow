@@ -249,8 +249,8 @@ def get_text_bioc(paragraphs, filename, textsource="Auto-CORPus"):
         bioc_xml = get_text_bioc(paragraphs)
     """
     passages = [p for sublist in
-                             [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in
-                             sublist]
+                [BioCText(text=replace_unicode(x)).__dict__["passages"] for x in paragraphs] for p in
+                sublist]
     offset = 0
     for p in passages:
         p["offset"] = offset
@@ -305,23 +305,46 @@ def extract_tables(doc):
     return tables
 
 
+def convert_older_doc_file(file, output_dir):
+    operating_system = platform.system()
+    docx_path = file.replace(".doc", ".docx")
+    if operating_system == "Windows":
+        import win32com.client
+        word = None
+        try:
+            docx_path = file + ".docx"
+            word = win32com.client.DispatchEx("Word.Application")
+            doc = word.Documents.Open(file)
+            doc.SaveAs(file + ".docx", 16)
+            doc.Close()
+            word.Quit()
+            return docx_path
+        except Exception as e:
+            return False
+        finally:
+            word.Quit()
+    elif operating_system == "linux":
+        # Convert .doc to .docx using LibreOffice
+        subprocess.run(
+            ["soffice", "--headless", "--convert-to", "docx", "--outdir", output_dir, file],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        return docx_path
+    elif operating_system == "mac":
+        return False
+
+
 def extract_text_from_doc(file_path):
     """
     Extracts text from a .doc file by converting it to .docx and processing with python-docx.
     """
     if not file_path.endswith(".doc"):
         raise ValueError("Input file must be a .doc file.")
-
-    docx_path = file_path.replace(".doc", ".docx")
     try:
         output_dir = str(Path(file_path).parent.absolute())
-        # Convert .doc to .docx using LibreOffice
-        subprocess.run(
-            ["soffice", "--headless", "--convert-to", "docx", "--outdir", output_dir, file_path],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        docx_path = convert_older_doc_file(file_path, output_dir)
 
         # Extract text from the resulting .docx file
         doc = Document(docx_path)
@@ -332,9 +355,12 @@ def extract_text_from_doc(file_path):
         os.unlink(docx_path)
         return paragraphs, tables
     except FileNotFoundError:
-        return "LibreOffice 'soffice' command not found. Ensure it is installed and in your PATH."
+        print("LibreOffice 'soffice' command not found. Ensure it is installed and in your PATH.")
+        return None, None
     except Exception as e:
-        return f"Error processing file {file_path}: {e}"
+        print(f"Error processing file {file_path}: {e}")
+        return None, None
+
 
 def process_word_document(file):
     """
@@ -393,7 +419,7 @@ def process_word_document(file):
         with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
             # TODO: Test if datatype causes a problem
             text = get_text_bioc(paragraphs, Path(file).name)
-            if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+            if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
                 text = apply_sentence_splitting(text)
             json.dump(text, f_out, indent=4)
 

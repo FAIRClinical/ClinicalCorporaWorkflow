@@ -6,8 +6,10 @@ from FAIRClinicalWorkflow.WorkflowStats import powerpoint_extensions
 test_sets = [x for x in Path("TestData").iterdir() if x.is_dir()]
 
 file_stats = {"missing_files": [], "old_count": 0, "new_count": 0, "files": []}
-overall_stats = {"Spreadsheets": lambda x: file_stats, "Words": lambda x: file_stats, "Presentations": lambda x: file_stats,
-            "Images": lambda x: file_stats, "PDFs": lambda x: file_stats}
+overall_stats = {"Spreadsheets": file_stats, "Words": file_stats,
+                 "Presentations": file_stats,
+                 "Images": file_stats, "PDFs": file_stats}
+
 
 def count_processed_file_types(files, print_output=False):
     word_count = 0

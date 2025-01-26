@@ -8,6 +8,7 @@ import tarfile
 import zipfile
 import PyPDF2
 import traceback
+import magic
 from os.path import exists
 from pathlib import Path
 
@@ -473,6 +474,29 @@ def process_archive_file(locations=None, file=None):
     return success, failed_files
 
 
+def __extract_unknown_file_text(locations=None, file=None):
+    base_dir, file_name = os.path.split(file)
+    if locations:
+        pass
+    if file:
+        try:
+            mime = magic.Magic(mime=True)
+            file_type = mime.from_file(file)
+            if file_type == "text/plain" or file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                return __extract_word_data(file=file)
+            elif file_type == "application/pdf":
+                return __extract_pdf_data(file=file)
+            elif file_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                return __extract_spreadsheet_data(file=file)
+            else:
+                return False, ""
+        except Exception as ex:
+            trace = traceback.format_exc()
+            print(ex)
+            text, images, out_meta, tables, file = None, None, None, None, None
+            return False, ""
+
+
 def process_supplementary_files(supplementary_files, output_format='json', pmcid=None):
     """
     Processes input list of file paths as supplementary data.
@@ -507,6 +531,9 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
 
         elif [1 for x in archive_extensions if file.lower().endswith(x)]:
             success, failed_files = process_archive_file(file=file)
+
+        elif "." not in file.lower():
+            success, failed_files = __extract_unknown_file_text(file=file)
     return success, failed_files, reason
 
 
