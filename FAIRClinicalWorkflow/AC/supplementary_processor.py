@@ -486,8 +486,11 @@ def __extract_unknown_file_text(locations=None, file=None):
                 return __extract_word_data(file=file)
             elif file_type == "application/pdf":
                 return __extract_pdf_data(file=file)
-            elif file_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            # .tsv files can also appear as text/plain unfortunately
+            elif file_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv", "text/tsv"]:
                 return __extract_spreadsheet_data(file=file)
+            elif file_type in ["image/png", "image/jpeg"]:
+                return __extract_image_data(file=file)
             else:
                 return False, ""
         except Exception as ex:
