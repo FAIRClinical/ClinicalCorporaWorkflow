@@ -151,6 +151,21 @@ def replace_unicode(text):
         return clean_text
 
 
+def convert_datetime_to_string(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert all datetime objects in a DataFrame to string format.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+
+    Returns:
+        pd.DataFrame: A DataFrame with datetime columns converted to string.
+    """
+    for col in df.select_dtypes(include=['datetime64[ns]', 'datetime64']):
+        df[col] = df[col].astype(str)
+    return df
+
+
 def process_spreadsheet(filename):
     """
     Process an Excel file and extract each sheet as a separate table.
@@ -173,7 +188,7 @@ def process_spreadsheet(filename):
         for sheet_name in xls.sheet_names:
             # read the sheet into a Pandas dataframe
             df = pd.read_excel(filename, sheet_name=sheet_name)
-
+            df = convert_datetime_to_string(df)
             # add the dataframe to the list of tables
             tables.append(df)
     except Exception as ex:
