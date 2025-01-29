@@ -62,6 +62,8 @@ class BioCText:
         """
         offset = 0
         passages = []
+        if text is None:
+            return passages
         if type(text) is str:
             text = text.split("\n\n")
         else:

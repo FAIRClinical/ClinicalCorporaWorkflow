@@ -172,7 +172,7 @@ def __extract_pdf_data(locations=None, file=None):
             #         json.dump(tables, tables_out, indent=4)
             if text:
                 with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as text_out:
-                    if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                    if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
                         biocjson.dump(apply_sentence_splitting(text), text_out, indent=4)
                     else:
                         biocjson.dump(text, text_out, indent=4)
@@ -202,7 +202,7 @@ def __extract_pdf_data(locations=None, file=None):
                     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                 if text:
                     with open(output_path, "w+", encoding="utf-8") as text_out:
-                        if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                        if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
                             biocjson.dump(apply_sentence_splitting(text), text_out, indent=4)
                         else:
                             biocjson.dump(text, text_out, indent=4)
@@ -266,10 +266,13 @@ def __extract_spreadsheet_data(locations=None, file=None):
             output_path = F"{os.path.join(base_dir, file_name + '_tables.json')}"
             if not Path(output_path).exists():
                 Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w+", encoding="utf-8") as f_out:
-                # Generate BioC format representation of the tables
-                json_output = get_tables_bioc(tables, file)
-                json.dump(json_output, f_out, indent=4)
+            try:
+                with open(output_path, "w+", encoding="utf-8") as f_out:
+                    # Generate BioC format representation of the tables
+                    json_output = get_tables_bioc(tables, file)
+                    json.dump(json_output, f_out, indent=4)
+            except Exception as ex:
+                print(f"{file_name}: {ex}")
             return True
     return False
 
@@ -322,7 +325,7 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
             with open(output_path, "w+", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_text_bioc(text, file, url)
-                if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
                     json_output = apply_sentence_splitting(json_output)
                 json.dump(json_output, f_out, indent=4)
             return True, reason
@@ -352,8 +355,10 @@ def __extract_powerpoint_data(locations=None, file=None):
             text, tables = convert_pdf_result([], text, file)
             if text:
                 base_dir = base_dir.replace("Raw", "Processed")
-                with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w+", encoding="utf-8") as text_out:
-                    if len(sys.argv) > 1  and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                if not Path(base_dir).exists():
+                    Path(base_dir).mkdir(parents=True, exist_ok=True)
+                with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as text_out:
+                    if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
                         text = apply_sentence_splitting(text)
                     biocjson.dump(text, text_out, indent=4)
                 return True
@@ -476,6 +481,7 @@ def process_archive_file(locations=None, file=None):
 
 def __extract_unknown_file_text(locations=None, file=None):
     base_dir, file_name = os.path.split(file)
+    success, failed_files, reason = False, [], ""
     if locations:
         pass
     if file:
@@ -483,21 +489,21 @@ def __extract_unknown_file_text(locations=None, file=None):
             mime = magic.Magic(mime=True)
             file_type = mime.from_file(file)
             if file_type == "text/plain" or file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                return __extract_word_data(file=file)
+                success = __extract_word_data(file=file)
             elif file_type == "application/pdf":
-                return __extract_pdf_data(file=file)
+                success, reason = __extract_pdf_data(file=file)
             # .tsv files can also appear as text/plain unfortunately
-            elif file_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv", "text/tsv"]:
-                return __extract_spreadsheet_data(file=file)
+            elif file_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv",
+                               "text/tsv"]:
+                success = __extract_spreadsheet_data(file=file)
             elif file_type in ["image/png", "image/jpeg"]:
-                return __extract_image_data(file=file)
-            else:
-                return False, ""
+                success, reason = __extract_image_data(file=file)
         except Exception as ex:
             trace = traceback.format_exc()
             print(ex)
             text, images, out_meta, tables, file = None, None, None, None, None
-            return False, ""
+            return False, [], ""
+    return success, failed_files, reason
 
 
 def process_supplementary_files(supplementary_files, output_format='json', pmcid=None):
@@ -536,7 +542,7 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
             success, failed_files = process_archive_file(file=file)
 
         elif "." not in file.lower():
-            success, failed_files = __extract_unknown_file_text(file=file)
+            success, failed_files, reason = __extract_unknown_file_text(file=file)
     return success, failed_files, reason
 
 
