@@ -424,16 +424,21 @@ def __identify_missing_processed_files(set_no, file_extensions=None):
 
 
 def __re_process_supplementary_set(set_no):
+    __clear_processed_files(set_no)
+    set_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
+    for file in set_path.rglob("*"):
+        if file.is_dir() or not "Raw" == file.parent.name:
+            continue
+        else:
+            # if ".pptx" in file.name.lower() or ".ppt" in file.name.lower():
+            process_supplementary_files([str(file.absolute())])
+
+
+def __clear_processed_files(set_no):
     set_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
     for file in set_path.rglob("*"):
         if file.is_dir() and file.name == "Processed":
             shutil.rmtree(file)
-            continue
-        if file.is_dir() or not "Raw" == file.parent.name:
-            continue
-        else:
-            if "." not in file.name.lower():
-                process_supplementary_files([str(file.absolute())])
 
 
 def test_sentence_splitting():
@@ -455,9 +460,9 @@ def run():
     """
     Workflow entry point
     """
-    # _load_pdf_models()
-    check_pmc_bioc_updates()
-    # __re_process_supplementary_set("070")
+    _load_pdf_models()
+    # check_pmc_bioc_updates()
+    __re_process_supplementary_set("070")
     # __identify_missing_processed_files("070", word_extensions)
     # test_sentence_splitting()
 

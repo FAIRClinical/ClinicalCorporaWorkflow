@@ -1,5 +1,5 @@
 from pptx import Presentation
-
+presentation_extensions = [".pptx", ".ppt", ".pptm", ".odp"]
 
 def get_powerpoint_text(filename):
     text = []

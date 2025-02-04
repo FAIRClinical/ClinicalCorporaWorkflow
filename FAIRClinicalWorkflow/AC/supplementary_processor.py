@@ -26,7 +26,7 @@ from FAIRClinicalWorkflow.AC.excel_extractor import process_spreadsheet, get_tab
 from FAIRClinicalWorkflow.BioC_Utilities import apply_sentence_splitting
 from FAIRClinicalWorkflow.MovieRemoval import log_unprocessed_supplementary_file
 from FAIRClinicalWorkflow.image_extractor import get_ocr_results, get_sibils_ocr
-from FAIRClinicalWorkflow.powerpoint_extractor import get_powerpoint_text
+from FAIRClinicalWorkflow.powerpoint_extractor import get_powerpoint_text, presentation_extensions
 
 word_extensions = [".doc", ".docx"]
 spreadsheet_extensions = [".csv", ".xls", ".xlsx", ".tsv"]
@@ -524,11 +524,11 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
             success = __extract_word_data(file=file)
 
         # Extract data from PDF files if they are present
-        elif file.lower().endswith("pdf"):
+        elif file.lower().endswith(".pdf"):
             success, reason = __extract_pdf_data(file=file)
 
         # Extract data from PowerPoint files if they are present
-        elif file.lower().endswith("pptx"):
+        elif [1 for x in presentation_extensions if file.lower().endswith(x)]:
             success = __extract_powerpoint_data(file=file)
 
         # Extract data from spreadsheet files if they are present
