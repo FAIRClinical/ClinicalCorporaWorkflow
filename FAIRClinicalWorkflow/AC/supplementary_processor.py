@@ -18,7 +18,7 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
-from AC.file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
+from .file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
     gzip_extensions, search_zip, search_tar, archive_extensions
 from .pdf_extractor import convert_pdf_result, get_text_bioc
 from .word_extractor import process_word_document
