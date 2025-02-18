@@ -1,7 +1,3 @@
-"""
-    Version 2022, Oct.
-"""
-
 import re
 
 """
@@ -22,7 +18,6 @@ Merge:
 ['ab.', 'Cu.']
 
 """
-
 
 SENTENCE_ENDERS_1ST_ROUND = re.compile(r"""
     # Split sentences on whitespace between them.
@@ -105,12 +100,18 @@ SENTENCE_ENDERS_1ST_ROUND = re.compile(r"""
     (?<!  IV\.) 
     (?<!  XI\.) 
     (?<!  XV\.) 
-    \s+               # Split on whitespace between sentences.
+    (\s+)               # Split on whitespace between sentences.
     """, re.IGNORECASE | re.VERBOSE)
 
 
 def sentence_split(text):
     return [
         sentence.strip()
-        for sentence in SENTENCE_ENDERS_1ST_ROUND.split(text)  
+        for sentence in SENTENCE_ENDERS_1ST_ROUND.split(text)
     ]
+
+
+def split_text_into_sentences_delim(text):
+    sentences_delim = re.split(SENTENCE_ENDERS_1ST_ROUND, text)
+    # Use zip to pair words with following delimiters
+    return list(zip(sentences_delim[::2], sentences_delim[1::2] + [""]))

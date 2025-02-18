@@ -11,7 +11,7 @@ zip_extensions = [".zip", ".7z", ".rar", ".zlib", ".7-zip", ".pzip", ".xz"]
 tar_extensions = [".tgz", ".tar", ".bgz"]
 gzip_extensions = [".gzip", ".gz"]
 archive_extensions = zip_extensions + tar_extensions + gzip_extensions
-from AC.supplementary_processor import image_extensions, word_extensions, spreadsheet_extensions
+from .AC.supplementary_processor import image_extensions, word_extensions, spreadsheet_extensions
 
 powerpoint_extensions = [".pptx", ".ppt", ".odp"]
 word_extensions.append(".txt")

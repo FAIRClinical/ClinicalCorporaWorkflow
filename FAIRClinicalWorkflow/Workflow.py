@@ -1,6 +1,11 @@
+from pathlib import Path
+import os
+os.chdir(Path(__file__).parent)
+
 import csv
 import logging
-import os
+
+
 import shutil
 import sys
 import tarfile
@@ -8,17 +13,16 @@ import tarfile
 import ftplib
 import re
 from datetime import datetime
-from pathlib import Path
+
 
 import regex
 from bioc import biocjson
 
-from FAIRClinicalWorkflow.AC.supplementary_processor import word_extensions
-from FAIRClinicalWorkflow.BioC_Utilities import apply_sentence_splitting
-from FAIRClinicalWorkflow.MovieRemoval import execute_movie_removal, video_extensions
-from FAIRClinicalWorkflow.PMC_BulkFilter import filter_manually as filter_articles
-from FAIRClinicalWorkflow.SupplementaryDownloader import process_directory as get_supplementary_files
-from AC.supplementary_processor import process_supplementary_files, _load_pdf_models
+from .BioC_Utilities import apply_sentence_splitting
+from .MovieRemoval import execute_movie_removal, video_extensions
+from .PMC_BulkFilter import filter_manually as filter_articles
+from .SupplementaryDownloader import process_directory as get_supplementary_files
+from .AC.supplementary_processor import process_supplementary_files, _load_pdf_models, word_extensions
 
 # FTP connection
 ftp_server = "ftp.ncbi.nlm.nih.gov"
@@ -461,8 +465,8 @@ def run():
     Workflow entry point
     """
     _load_pdf_models()
-    # check_pmc_bioc_updates()
-    __re_process_supplementary_set("070")
+    check_pmc_bioc_updates()
+    # __re_process_supplementary_set("070")
     # __identify_missing_processed_files("070", word_extensions)
     # test_sentence_splitting()
 

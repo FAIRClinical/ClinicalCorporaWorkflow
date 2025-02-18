@@ -18,15 +18,15 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
-from FAIRClinicalWorkflow.AC.file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
+from AC.file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
     gzip_extensions, search_zip, search_tar, archive_extensions
-from FAIRClinicalWorkflow.AC.pdf_extractor import convert_pdf_result, get_text_bioc
-from FAIRClinicalWorkflow.AC.word_extractor import process_word_document
-from FAIRClinicalWorkflow.AC.excel_extractor import process_spreadsheet, get_tables_bioc
-from FAIRClinicalWorkflow.BioC_Utilities import apply_sentence_splitting
-from FAIRClinicalWorkflow.MovieRemoval import log_unprocessed_supplementary_file
-from FAIRClinicalWorkflow.image_extractor import get_ocr_results, get_sibils_ocr
-from FAIRClinicalWorkflow.powerpoint_extractor import get_powerpoint_text, presentation_extensions
+from .pdf_extractor import convert_pdf_result, get_text_bioc
+from .word_extractor import process_word_document
+from .excel_extractor import process_spreadsheet, get_tables_bioc
+from ..BioC_Utilities import apply_sentence_splitting
+from ..MovieRemoval import log_unprocessed_supplementary_file
+from ..image_extractor import get_ocr_results, get_sibils_ocr
+from ..powerpoint_extractor import get_powerpoint_text, presentation_extensions
 
 word_extensions = [".doc", ".docx"]
 spreadsheet_extensions = [".csv", ".xls", ".xlsx", ".tsv"]
@@ -479,6 +479,13 @@ def process_archive_file(locations=None, file=None):
     return success, failed_files
 
 
+def log_identified_file_type(set_dir, file, type):
+    pmc_dir = str(file.parent.parent.name)
+    pmc = pmc_dir[:pmc_dir.index("_")]
+    with open(Path(set_dir).joinpath("identified_file_types.log"), "a", encoding="utf-8") as f_out:
+        f_out.write(f"{pmc_dir}\t{pmc}\t{file.name}\t{type}\n")
+
+
 def __extract_unknown_file_text(locations=None, file=None):
     base_dir, file_name = os.path.split(file)
     success, failed_files, reason = False, [], ""
@@ -488,16 +495,29 @@ def __extract_unknown_file_text(locations=None, file=None):
         try:
             mime = magic.Magic(mime=True)
             file_type = mime.from_file(file)
-            if file_type == "text/plain" or file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            if file_type in ["text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                             "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+                             "application/vnd.oasis.opendocument.text",
+                             "application/rtf"]:
                 success = __extract_word_data(file=file)
+                log_identified_file_type(base_dir, file, "Word")
             elif file_type == "application/pdf":
                 success, reason = __extract_pdf_data(file=file)
+                log_identified_file_type(base_dir, file, "PDF")
             # .tsv files can also appear as text/plain unfortunately
-            elif file_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv",
+            elif file_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                               "application/vnd.oasis.opendocument.spreadsheet", "text/csv",
                                "text/tsv"]:
                 success = __extract_spreadsheet_data(file=file)
+                log_identified_file_type(base_dir, file, "Spreadsheet")
             elif file_type in ["image/png", "image/jpeg"]:
                 success, reason = __extract_image_data(file=file)
+                log_identified_file_type(base_dir, file, "Image")
+            elif file_type in ["application/vnd.oasis.opendocument.presentation",
+                               "application/vnd.openxmlformats-officedocument.presentation",
+                               "application/vnd.openxmlformats-officedocument.presentationml.presentation"]:
+                success = __extract_powerpoint_data(file=file)
+                log_identified_file_type(base_dir, file, "Presentation")
         except Exception as ex:
             trace = traceback.format_exc()
             print(ex)
@@ -584,3 +604,6 @@ def generate_file_report(input_directory):
         spreadsheet_locations = {x: file_extensions[x] for x in spreadsheet_extensions}
         __extract_spreadsheet_data(spreadsheet_locations)
     return True
+
+process_supplementary_files(    ["D:\\Users\\thoma\\PycharmProjects\\ClinicalCorporaWorkflow\\FAIRClinicalWorkflow\\Output"
+    "\\PMC080XXXXX_json_ascii_supplementary\\PMC8080372_supplementary\\Raw\\12883_2021_2204_MOESM5_ESM.docx"])

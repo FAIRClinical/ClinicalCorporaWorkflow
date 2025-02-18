@@ -14,7 +14,7 @@ import logging
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from FAIRClinicalWorkflow.MovieRemoval import video_extensions
+from .MovieRemoval import video_extensions
 
 refs_log = logging.getLogger("ReferenceLogger")
 refs_handler = logging.FileHandler("FailedSuppLinks.log")
