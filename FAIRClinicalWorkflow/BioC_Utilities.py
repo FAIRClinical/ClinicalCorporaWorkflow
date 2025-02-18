@@ -3,7 +3,7 @@ from pathlib import Path
 from bioc import biocjson, biocxml, BioCCollection, BioCSentence
 import argparse
 
-from .SIBiLS_sentence_splitter import sentence_split, split_text_into_sentences_delim
+from FAIRClinicalWorkflow.SIBiLS_sentence_splitter import sentence_split, split_text_into_sentences_delim
 
 
 def convert_bioc_format(file, output_type):
@@ -13,7 +13,7 @@ def convert_bioc_format(file, output_type):
     :param Str output_type:
     :return: True on success, False on failure
     """
-    assert output_type.lower() in ['json', 'xml']
+    assert output_type.lower() in ['json', 'xml'], output_type
     assert file.is_file()
     if output_type == 'json':
         with open(file, 'r') as f_in:
@@ -64,7 +64,7 @@ def load_bioc_file(input_file):
     :return: BioCCollection
     """
     assert input_file.is_file()
-    assert input_file.suffix in ['.xml', '.json']
+    assert input_file.suffix in ['.xml', '.json'], input_file.absolute()
     if input_file.suffix == '.xml':
         return biocxml.loads(input_file.read_text())
     elif input_file.suffix == '.json':
@@ -84,6 +84,9 @@ def __main():
     will_convert = args.convert_type
     will_sentence_split = args.sentence_splitter
 
+    if will_convert:
+        will_convert = will_convert.lower()
+
     assert input_path.exists()
 
     if not output_path.exists():
@@ -91,7 +94,7 @@ def __main():
 
     assert output_path.exists()
 
-    input_files = [x for x in input_path.iterdir()] if input_path.is_dir() else [input_path]
+    input_files = [x for x in input_path.rglob('*_bioc.json')] + [x for x in input_path.rglob('*_bioc.xml')]
 
     for file in input_files:
         if file.suffix.lower() not in [".json", ".xml"]:
@@ -105,7 +108,8 @@ def __main():
                 else:
                     biocjson.dump(bioc_file, f_out)
         elif will_convert:
-            convert_bioc_format(file, will_convert)
+            if will_convert in ["json", "xml"]:
+                convert_bioc_format(file, will_convert)
 
 
 if __name__ == "__main__":
