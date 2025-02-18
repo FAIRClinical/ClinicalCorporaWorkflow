@@ -3,7 +3,8 @@ from pathlib import Path
 from bioc import biocjson, biocxml, BioCCollection, BioCSentence
 import argparse
 
-from FAIRClinicalWorkflow.SIBiLS_sentence_splitter import sentence_split
+from .SIBiLS_sentence_splitter import sentence_split, split_text_into_sentences_delim
+
 
 def convert_bioc_format(file, output_type):
     """
@@ -45,7 +46,8 @@ def apply_sentence_splitting(article):
             passage = document.passages[p]
             old_text = passage.text
             old_offset = passage.offset
-            sentences = sentence_split(old_text)
+            sentences = ["".join(x) for x in split_text_into_sentences_delim(old_text)]
+
             for sentence in sentences:
                 bioc_sentence = BioCSentence()
                 bioc_sentence.text = sentence
@@ -83,11 +85,17 @@ def __main():
     will_sentence_split = args.sentence_splitter
 
     assert input_path.exists()
+
+    if not output_path.exists():
+        output_path.mkdir()
+
     assert output_path.exists()
 
     input_files = [x for x in input_path.iterdir()] if input_path.is_dir() else [input_path]
 
     for file in input_files:
+        if file.suffix.lower() not in [".json", ".xml"]:
+            continue
         if will_sentence_split:
             bioc_file = load_bioc_file(file)
             bioc_file = apply_sentence_splitting(bioc_file)
