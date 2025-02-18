@@ -113,5 +113,6 @@ def sentence_split(text):
 
 def split_text_into_sentences_delim(text):
     sentences_delim = re.split(SENTENCE_ENDERS_1ST_ROUND, text)
-    # Use zip to pair words with following delimiters
-    return list(zip(sentences_delim[::2], sentences_delim[1::2] + [""]))
+    if len(sentences_delim) % 2 == 0:
+        sentences_delim.append(" ")  # Ensure a space is added if missing
+    return list(zip(sentences_delim[::2], sentences_delim[1::2] + [" "]))

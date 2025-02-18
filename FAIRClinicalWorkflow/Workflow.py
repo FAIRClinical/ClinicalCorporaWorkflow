@@ -446,14 +446,15 @@ def __clear_processed_files(set_no):
 
 
 def test_sentence_splitting():
-    set_no = "070"
-    input_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
+    set_no = "080"
+    # input_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
+    input_path = Path(f"Output\\PMC080XXXXX_json_ascii\\PMC080XXXXX_json_ascii")
     for file in input_path.rglob("*split_bioc.json"):
         os.unlink(file)
-    for file in input_path.rglob("*_bioc.json"):
-        if file.parent.name != "Processed":
-            continue
-        with open(file, "r", encoding="utf-8") as f_in, open(str(file).replace("_bioc.json", "_split_bioc.json"), "w",
+    for file in input_path.rglob("*.json"):
+        # if file.parent.name != "Processed":
+        #     continue
+        with open(file, "r", encoding="utf-8") as f_in, open(str(file).replace(".json", "_split.json"), "w",
                                                              encoding="utf-8") as f_out:
             in_bioc = biocjson.load(f_in)
             out_bioc = apply_sentence_splitting(in_bioc)

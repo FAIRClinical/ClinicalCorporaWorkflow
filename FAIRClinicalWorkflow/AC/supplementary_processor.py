@@ -604,6 +604,3 @@ def generate_file_report(input_directory):
         spreadsheet_locations = {x: file_extensions[x] for x in spreadsheet_extensions}
         __extract_spreadsheet_data(spreadsheet_locations)
     return True
-
-process_supplementary_files(    ["D:\\Users\\thoma\\PycharmProjects\\ClinicalCorporaWorkflow\\FAIRClinicalWorkflow\\Output"
-    "\\PMC080XXXXX_json_ascii_supplementary\\PMC8080372_supplementary\\Raw\\12883_2021_2204_MOESM5_ESM.docx"])

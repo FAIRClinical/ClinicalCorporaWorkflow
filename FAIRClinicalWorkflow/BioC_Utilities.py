@@ -46,7 +46,7 @@ def apply_sentence_splitting(article):
             passage = document.passages[p]
             old_text = passage.text
             old_offset = passage.offset
-            sentences = ["".join(x) for x in split_text_into_sentences_delim(old_text)]
+            sentences = ["".join(x) for x in split_text_into_sentences_delim(old_text) if x[0]]
 
             for sentence in sentences:
                 bioc_sentence = BioCSentence()
