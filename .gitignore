@@ -1,4 +1,9 @@
 /FAIRClinicalWorkflow/Output/
+/FAIRClinicalWorkflow/V1_Output/
 /FAIRClinicalWorkflow/file_versions.tsv
 *.tsv
 *.log
+/Tests/TestData/
+/venv/
+/FAIRClinicalWorkflow/file_versions.tsv
+NoSuppLinks.txt
