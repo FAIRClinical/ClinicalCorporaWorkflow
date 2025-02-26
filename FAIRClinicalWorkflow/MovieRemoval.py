@@ -220,14 +220,14 @@ def copy_download_log(input_directory):
             for line in f_in.readlines():
                 folder, pmcid, url = line.split("\t")
                 url = url.strip("\n")
-                file = url.strip("\n").split("/")[-1]
+                file = url.strip("\n").split("/")[-1].lower()
 
                 if any([file.endswith(x) for x in archive_extensions]):
                     # retrieve the archive to exclude (if all archived files are videos) and all individual video
                     # files within it.
-                    videos_contained = [(file_or_archive, archived_file) for (pmc_dir, pmc_label, file_or_archive,
+                    videos_contained = [(file_or_archive.lower(), archived_file) for (pmc_dir, pmc_label, file_or_archive,
                                                                               archived_file) in videos_removed
-                                        if file_or_archive == file]
+                                        if file_or_archive.lower() == file]
                     if videos_contained:
                         for (file_or_archive, archived_file) in videos_contained:
                             if (pmcid, url, archived_file) not in excluded_log_entries:
