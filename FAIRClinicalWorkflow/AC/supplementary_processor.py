@@ -6,6 +6,8 @@ import shutil
 import sys
 import tarfile
 import zipfile
+import rarfile
+rarfile.UNRAR_TOOL = r"C:\\Program Files (x86)\\UnRAR\\UnRAR.exe"  # Windows
 import PyPDF2
 import traceback
 import magic
@@ -380,6 +382,61 @@ def retry_rmtree(path, retries=5, delay=1):
             time.sleep(delay)  # Wait before retrying
         except FileNotFoundError:
             return  # Directory already removed
+        except Exception as e:
+            return
+
+def process_and_update_rar(archive_path):
+    success = False
+    failed_files = []
+    processed_dir = Path(archive_path).parent.parent / "Processed"
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with rarfile.RarFile(archive_path, 'r') as rar_ref:
+                rar_ref.extractall(temp_dir)
+                extracted_files = [os.path.join(temp_dir, member.filename) for member in rar_ref.infolist() if not member.isdir()]
+
+            for file_path in extracted_files:
+                success, failed_files, reason = process_supplementary_files([file_path])
+
+                if success:
+                    file_output_success = False
+                    for new_result_file in ["_bioc.json", "_tables.json"]:
+                        new_file_path = file_path + new_result_file
+                        output_path = processed_dir / (Path(file_path).name + new_result_file)
+
+                        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        if os.path.exists(new_file_path):
+                            shutil.move(new_file_path, output_path)
+                            file_output_success = True
+
+                    if not file_output_success:
+                        failed_files.append(Path(file_path).name)
+                else:
+                    failed_files.append(Path(file_path).name)
+
+            for file_path in extracted_files:
+                try:
+                    with open(file_path, 'r') as f:
+                        pass
+                except Exception:
+                    pass
+
+    except Exception as e:
+        print(f"Error processing archive {archive_path}: {e}")
+    finally:
+        retry_rmtree(temp_dir)
+
+    for file in failed_files:
+        log_unprocessed_supplementary_file(
+            archive_path,
+            file,
+            "Failed to extract text from the document.",
+            str(Path(archive_path).parent.parent.parent),
+        )
+
+    return success, failed_files
+
 
 def process_and_update_zip(archive_path):
     success = False
@@ -446,9 +503,8 @@ def process_and_update_tar(archive_path):
     success = False
     failed_files = []
     processed_dir = Path(archive_path).parent.parent / "Processed"
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        try:
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
             with tarfile.open(archive_path, 'r') as tar_ref:
                 tar_ref.extractall(temp_dir)
                 extracted_files = [os.path.join(temp_dir, member.name) for member in tar_ref.getmembers() if member.isfile()]
@@ -480,10 +536,10 @@ def process_and_update_tar(archive_path):
                 except Exception:
                     pass
 
-        except Exception as e:
-            print(f"Error processing archive {archive_path}: {e}")
-        finally:
-            retry_rmtree(temp_dir)
+    except Exception as e:
+        print(f"Error processing archive {archive_path}: {e}")
+    finally:
+        retry_rmtree(temp_dir)
 
     for file in failed_files:
         log_unprocessed_supplementary_file(
@@ -511,7 +567,9 @@ def process_archive_file(locations=None, file=None):
         base_dir, file_name = os.path.split(file)
         extensions = {}
         file_extension = file[file.rfind('.'):].lower()
-        if file_extension in zip_extensions:
+        if file_extension == ".rar":
+            success, failed_files = process_and_update_rar(file)
+        elif file_extension in zip_extensions:
             success, failed_files = process_and_update_zip(file)
         elif file_extension in tar_extensions or file_extension in gzip_extensions:
             success, failed_files = process_and_update_tar(file)
