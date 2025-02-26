@@ -22,7 +22,7 @@ from .BioC_Utilities import apply_sentence_splitting
 from .MovieRemoval import execute_movie_removal, video_extensions
 from .PMC_BulkFilter import filter_manually as filter_articles
 from .SupplementaryDownloader import process_directory as get_supplementary_files
-from .AC.supplementary_processor import process_supplementary_files, _load_pdf_models, word_extensions
+from .AC.supplementary_processor import process_supplementary_files, _load_pdf_models, word_extensions, archive_extensions
 
 # FTP connection
 ftp_server = "ftp.ncbi.nlm.nih.gov"
@@ -428,14 +428,17 @@ def __identify_missing_processed_files(set_no, file_extensions=None):
 
 
 def __re_process_supplementary_set(set_no):
-    __clear_processed_files(set_no)
-    set_path = Path(f"D:\\Backups\\PMC{set_no}XXXXX_json_ascii_supplementary")
-    for file in set_path.rglob("*"):
-        if file.is_dir() or not "Raw" == file.parent.name:
-            continue
-        else:
-            # if ".pptx" in file.name.lower() or ".ppt" in file.name.lower():
-            process_supplementary_files([str(file.absolute())])
+    # __clear_processed_files(set_no)
+    sets = ["055", "060", "065", "070", "075", "080", "085", "090", "095", "100", "105"]
+    for old_set in sets:
+        set_path = Path(f"D:\\Backups\\PMC{old_set}XXXXX_json_ascii_supplementary")
+        for file in set_path.rglob("*"):
+            if file.is_dir() or not "Raw" == file.parent.name:
+                continue
+            else:
+                if [1 for x in archive_extensions if str(file.absolute()).lower().endswith(x)]:
+                # if ".pptx" in file.name.lower() or ".ppt" in file.name.lower():
+                    process_supplementary_files([str(file.absolute())])
 
 
 def __clear_processed_files(set_no):
@@ -467,14 +470,6 @@ def run():
     """
     _load_pdf_models()
     check_pmc_bioc_updates()
-    # __re_process_supplementary_set("070")
-    # __identify_missing_processed_files("070", word_extensions)
-    # test_sentence_splitting()
-    # from .WorkflowStats import __main
-    # __main()
-    # from .FileExtensionAnalysis import scan_files
-    # scan_files("D:\Backups\PMC090XXXXX_json_ascii_supplementary")
-    # test = process_supplementary_files(["C:\\Users\\thoma\\Documents\\test\\13000_2020_976_MOESM2_ESM.zip"])
 
 if __name__ == "__main__":
     run()
