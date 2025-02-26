@@ -385,7 +385,7 @@ def process_and_update_zip(archive_path):
     success = False
     failed_files = []
     
-    processed_dir = Path(archive_path).parent / "Processed"
+    processed_dir = Path(archive_path).parent.parent / "Processed"
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             
@@ -445,32 +445,38 @@ def process_and_update_zip(archive_path):
 def process_and_update_tar(archive_path):
     success = False
     failed_files = []
+    processed_dir = Path(archive_path).parent.parent / "Processed"
 
-    # Use a secure temporary directory
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
-            # Extract files
             with tarfile.open(archive_path, 'r') as tar_ref:
                 tar_ref.extractall(temp_dir)
                 extracted_files = [os.path.join(temp_dir, member.name) for member in tar_ref.getmembers() if member.isfile()]
-            
+
             for file_path in extracted_files:
                 success, failed_files, reason = process_supplementary_files([file_path])
-                
+
                 if success:
+                    file_output_success = False
                     for new_result_file in ["_bioc.json", "_tables.json"]:
                         new_file_path = file_path + new_result_file
+                        output_path = processed_dir / (Path(file_path).name + new_result_file)
+
+                        output_path.parent.mkdir(parents=True, exist_ok=True)
+
                         if os.path.exists(new_file_path):
-                            with tarfile.open(archive_path, 'a') as tar_write:
-                                tar_write.add(new_file_path, arcname=os.path.basename(new_file_path))
+                            shutil.move(new_file_path, output_path)
+                            file_output_success = True
+
+                    if not file_output_success:
+                        failed_files.append(Path(file_path).name)
                 else:
                     failed_files.append(Path(file_path).name)
-            
-            # Ensure all files are closed before cleanup
+
             for file_path in extracted_files:
                 try:
                     with open(file_path, 'r') as f:
-                        pass  # Open and close to release any lock
+                        pass
                 except Exception:
                     pass
 
@@ -479,7 +485,6 @@ def process_and_update_tar(archive_path):
         finally:
             retry_rmtree(temp_dir)
 
-    # Log failed files
     for file in failed_files:
         log_unprocessed_supplementary_file(
             archive_path,
@@ -489,6 +494,7 @@ def process_and_update_tar(archive_path):
         )
 
     return success, failed_files
+
 
 
 def process_archive_file(locations=None, file=None):
