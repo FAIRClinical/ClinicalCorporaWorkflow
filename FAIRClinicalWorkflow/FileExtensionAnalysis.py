@@ -182,7 +182,9 @@ def print_output(extensions, input_path):
             print(F"{extension}: {total} files")
             output_msg += F"{extension}: {total} files\n"
         non_nested_files[extension]["total"] = total
-    output_msg += list_grouped_file_types(non_nested_files)
+    grouped_file_types = list_grouped_file_types(non_nested_files)
+    print(grouped_file_types)
+    output_msg += grouped_file_types
     print(F"Total: {total_file_count} files")
     output_msg += F"Total: {total_file_count} files\n"
     print("-----------------------")
@@ -197,7 +199,9 @@ def print_output(extensions, input_path):
         output_msg += F"{extension}: {total} files\n"
     print(F"Total: {total_file_count} files")
     output_msg += F"Total: {total_file_count} files\n"
-    output_msg += list_grouped_file_types(nested_only_stats)
+    nested_grouped_file_types = list_grouped_file_types(nested_only_stats)
+    print(nested_grouped_file_types)
+    output_msg += nested_grouped_file_types
     file_name = Path(input_path).name.replace("_json_ascii_supplementary",
                                               "_supplementary_extension_analysis.txt")
     with open(Path(input_path).parent / file_name, "w+", encoding="utf-8") as f_out:
