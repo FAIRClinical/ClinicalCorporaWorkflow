@@ -9,6 +9,8 @@ import zipfile
 import PyPDF2
 import traceback
 import magic
+import time
+import tempfile
 from os.path import exists
 from pathlib import Path
 
@@ -189,6 +191,8 @@ def __extract_pdf_data(locations=None, file=None):
                 print(F"PDF file contains over 100 pages, skipping: {file}")
                 return False, "PDF file contains over 100 pages. This file was skipped."
 
+            _load_pdf_models()
+
             rendered = pdf_converter(file)
             text, images, out_meta = text_from_rendered(rendered)
             text, tables = extract_table_from_text(text)
@@ -367,94 +371,123 @@ def __extract_powerpoint_data(locations=None, file=None):
         except Exception as ex:
             return False
 
+def retry_rmtree(path, retries=5, delay=1):
+    for _ in range(retries):
+        try:
+            shutil.rmtree(path)
+            return
+        except PermissionError:
+            time.sleep(delay)  # Wait before retrying
+        except FileNotFoundError:
+            return  # Directory already removed
 
 def process_and_update_zip(archive_path):
-    # Unique temp subdirectory for this archive
-    temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
-    processed_dir = Path(*Path(archive_path).parts[:-1]) / "Processed"
-
-    # Create the unique subdirectory
-    os.makedirs(temp_dir, exist_ok=True)
-
     success = False
     failed_files = []
+    
+    processed_dir = Path(archive_path).parent / "Processed"
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            
+            # Extract files
+            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+                extracted_files = [os.path.join(temp_dir, member.filename) for member in zip_ref.infolist() if not member.is_dir()]
+            
+            for file_path in extracted_files:
+                success, failed_files, reason = process_supplementary_files([file_path])
 
-    # Open the zip file
-    with zipfile.ZipFile(archive_path, 'r') as zip_ref:
-        for filename in zip_ref.filelist:
-            # Extract each file
-            zip_ref.extract(filename, temp_dir)
+                if success:
+                    file_output_success = False
+                    for new_result_file in ["_bioc.json", "_tables.json"]:
+                        new_file_path = file_path + new_result_file
+                        output_path = processed_dir / (Path(file_path).name + new_result_file)
 
-            # Get the temp file path
-            file_path = os.path.join(temp_dir, filename.filename)
+                        output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Process the temp file
-            success, failed_files, reason = process_supplementary_files([file_path])
-            if success:
-                file_output_success = False
-                for new_result_file in ["_bioc.json", "_tables.json"]:
-                    file_path = os.path.join(temp_dir, filename.filename)
-                    output_path = os.path.join(str(Path(archive_path).parent).replace("Raw", "Processed"),
-                                               str(os.path.basename(file_path)) + new_result_file)
-                    if not Path(output_path).parent.exists():
-                        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-                    if os.path.exists(file_path + new_result_file):
-                        with open(file_path + new_result_file, "r") as f_in, open(output_path, "w+") as f_out:
-                            f_out.write(f_in.read())
-                        file_output_success = True
-                if not file_output_success:
-                    failed_files.append(file_path)
-            else:
-                failed_files.append(filename)
+                        if os.path.exists(new_file_path):
+                            # Ensure file is closed before moving
+                            with open(new_file_path, 'r') as f:
+                                pass  # Just open and close it to release lock
+                            shutil.move(new_file_path, output_path)
+                            file_output_success = True
+                    
+                    if not file_output_success:
+                        failed_files.append(Path(file_path).name)
+                else:
+                    failed_files.append(Path(file_path).name)
+
+            # Ensure all files are closed before cleanup
+            for file_path in extracted_files:
+                try:
+                    with open(file_path, 'r') as f:
+                        pass  # Open and close to release any lock
+                except Exception:
+                    pass
+
+    except Exception as e:
+        print(f"Error processing archive {archive_path}: {e}")
+    finally:
+        retry_rmtree(temp_dir)
+
+    # Log failed files
     for file in failed_files:
-        log_unprocessed_supplementary_file(archive_path, file.filename, F"Failed to extract text from the document.",
-                                           str(Path(archive_path).parent.parent.parent))
+        log_unprocessed_supplementary_file(
+            archive_path,
+            file,
+            "Failed to extract text from the document.",
+            str(Path(archive_path).parent.parent.parent),
+        )
 
-    # Cleanup: Remove the temporary directory and extracted files
-    shutil.rmtree(temp_dir, ignore_errors=True)
     return success, failed_files
 
 
 def process_and_update_tar(archive_path):
-    # Unique temp subdirectory for this archive
-    temp_dir = os.path.join('temp_extracted_files', secrets.token_hex(10))
-
-    # Create the unique subdirectory
-    os.makedirs(temp_dir, exist_ok=True)
-
     success = False
-
     failed_files = []
 
-    # Open the zip file
-    with tarfile.TarFile(archive_path, 'r') as tar_ref:
-        for filename in tar_ref.getmembers():
-            # Extract each file
-            tar_ref.extract(filename, temp_dir)
+    # Use a secure temporary directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Extract files
+            with tarfile.open(archive_path, 'r') as tar_ref:
+                tar_ref.extractall(temp_dir)
+                extracted_files = [os.path.join(temp_dir, member.name) for member in tar_ref.getmembers() if member.isfile()]
+            
+            for file_path in extracted_files:
+                success, failed_files, reason = process_supplementary_files([file_path])
+                
+                if success:
+                    for new_result_file in ["_bioc.json", "_tables.json"]:
+                        new_file_path = file_path + new_result_file
+                        if os.path.exists(new_file_path):
+                            with tarfile.open(archive_path, 'a') as tar_write:
+                                tar_write.add(new_file_path, arcname=os.path.basename(new_file_path))
+                else:
+                    failed_files.append(Path(file_path).name)
+            
+            # Ensure all files are closed before cleanup
+            for file_path in extracted_files:
+                try:
+                    with open(file_path, 'r') as f:
+                        pass  # Open and close to release any lock
+                except Exception:
+                    pass
 
-            # Get the temp file path
-            file_path = os.path.join(temp_dir, filename)
+        except Exception as e:
+            print(f"Error processing archive {archive_path}: {e}")
+        finally:
+            retry_rmtree(temp_dir)
 
-            # Process the temp file
-            success, failed_files, reason = process_supplementary_files([file_path])
-            if success:
-                for new_result_file in ["_bioc.json", "_tables.json"]:
-                    if exists(file_path + new_result_file):
-                        with open(file_path + new_result_file, "r") as f_in, tarfile.TarFile(archive_path,
-                                                                                             'a') as tar_write:
-                            tar_write.add(file_path + new_result_file)
-                            success = True
-            else:
-                failed_files.append(filename)
-
+    # Log failed files
     for file in failed_files:
-        log_unprocessed_supplementary_file(archive_path, file.name, F"Failed to extract text from the document.",
-                                           str(Path(archive_path).parent.parent.parent))
+        log_unprocessed_supplementary_file(
+            archive_path,
+            file,
+            "Failed to extract text from the document.",
+            str(Path(archive_path).parent.parent.parent),
+        )
 
-    # Cleanup: Remove the temporary directory and extracted files
-    for filename in os.listdir(temp_dir):
-        os.remove(os.path.join(temp_dir, filename))
-    os.rmdir(temp_dir)
     return success, failed_files
 
 

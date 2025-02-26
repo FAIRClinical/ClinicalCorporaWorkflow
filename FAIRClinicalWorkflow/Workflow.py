@@ -429,7 +429,7 @@ def __identify_missing_processed_files(set_no, file_extensions=None):
 
 def __re_process_supplementary_set(set_no):
     __clear_processed_files(set_no)
-    set_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
+    set_path = Path(f"D:\\Backups\\PMC{set_no}XXXXX_json_ascii_supplementary")
     for file in set_path.rglob("*"):
         if file.is_dir() or not "Raw" == file.parent.name:
             continue
@@ -439,7 +439,7 @@ def __re_process_supplementary_set(set_no):
 
 
 def __clear_processed_files(set_no):
-    set_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
+    set_path = Path(f"D:\\Backups\\PMC{set_no}XXXXX_json_ascii_supplementary")
     for file in set_path.rglob("*"):
         if file.is_dir() and file.name == "Processed":
             shutil.rmtree(file)
@@ -470,7 +470,11 @@ def run():
     # __re_process_supplementary_set("070")
     # __identify_missing_processed_files("070", word_extensions)
     # test_sentence_splitting()
-
+    # from .WorkflowStats import __main
+    # __main()
+    # from .FileExtensionAnalysis import scan_files
+    # scan_files("D:\Backups\PMC090XXXXX_json_ascii_supplementary")
+    # test = process_supplementary_files(["C:\\Users\\thoma\\Documents\\test\\13000_2020_976_MOESM2_ESM.zip"])
 
 if __name__ == "__main__":
     run()
