@@ -430,7 +430,7 @@ def process_and_update_rar(archive_path):
     for file in failed_files:
         log_unprocessed_supplementary_file(
             archive_path,
-            file,
+            file.filename,
             "Failed to extract text from the document.",
             str(Path(archive_path).parent.parent.parent),
         )
@@ -491,7 +491,7 @@ def process_and_update_zip(archive_path):
     for file in failed_files:
         log_unprocessed_supplementary_file(
             archive_path,
-            file,
+            file.filename,
             "Failed to extract text from the document.",
             str(Path(archive_path).parent.parent.parent),
         )
@@ -544,7 +544,7 @@ def process_and_update_tar(archive_path):
     for file in failed_files:
         log_unprocessed_supplementary_file(
             archive_path,
-            file,
+            file.filename,
             "Failed to extract text from the document.",
             str(Path(archive_path).parent.parent.parent),
         )
