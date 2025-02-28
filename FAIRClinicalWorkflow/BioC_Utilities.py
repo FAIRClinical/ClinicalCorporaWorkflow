@@ -48,7 +48,10 @@ def apply_sentence_splitting(article):
             passage = document.passages[p]
             old_text = passage.text
             old_offset = passage.offset
-            sentences = ["".join(x) for x in split_text_into_sentences_delim(old_text) if x[0]]
+            sentences = split_text_into_sentences_delim(old_text) #["".join(x) for x in split_text_into_sentences_delim(old_text) if x[0]]
+            if sentences:
+                if old_text[-1] != sentences[-1][-1]:
+                    sentences[-1] += old_text[-1]
 
             for sentence in sentences:
                 bioc_sentence = BioCSentence()
@@ -56,6 +59,7 @@ def apply_sentence_splitting(article):
                 bioc_sentence.offset = old_offset
                 old_offset += len(sentence)
                 new_article.documents[d].passages[p].sentences.append(bioc_sentence)
+
     return new_article
 
 
@@ -96,7 +100,7 @@ def __main():
 
     assert output_path.exists()
 
-    input_files = [x for x in input_path.rglob('*_bioc.json')] + [x for x in input_path.rglob('*_bioc.xml')]
+    input_files = [x for x in input_path.rglob('*.json')] + [x for x in input_path.rglob('*.xml')]
 
     for file in input_files:
         if file.suffix.lower() not in [".json", ".xml"]:

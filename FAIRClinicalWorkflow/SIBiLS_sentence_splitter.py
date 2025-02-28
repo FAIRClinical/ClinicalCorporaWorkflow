@@ -112,7 +112,16 @@ def sentence_split(text):
 
 
 def split_text_into_sentences_delim(text):
-    sentences_delim = re.split(SENTENCE_ENDERS_1ST_ROUND, text)
-    if len(sentences_delim) % 2 == 0:
-        sentences_delim.append(" ")  # Ensure a space is added if missing
-    return list(zip(sentences_delim[::2], sentences_delim[1::2] + [" "]))
+    sentences_delim = [x for x in re.split(SENTENCE_ENDERS_1ST_ROUND, text) if x]
+    merged_sentences = []
+    if sentences_delim:
+        for sentence in sentences_delim:
+            if len(sentence) < 2:
+                if len(merged_sentences) > 0:
+                    merged_sentences[-1] += sentence
+                else:
+                    merged_sentences.append(sentence)
+            else:
+                merged_sentences.append(sentence)
+    return merged_sentences
+    # return sentences_delim # list(zip(sentences_delim[::2], sentences_delim[1::2]))
