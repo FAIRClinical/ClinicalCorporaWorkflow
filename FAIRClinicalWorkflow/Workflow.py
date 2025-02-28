@@ -153,9 +153,16 @@ def clean_unprocessed_log(path):
     unprocessed_rows = []
     with open(log_path, "r", encoding="utf-8") as f_in:
         unprocessed_rows = f_in.readlines()
-    unprocessed_rows = [x for x in unprocessed_rows if "temp_extracted_files" not in x]
+    unprocessed_rows = [x for x in unprocessed_rows]
+    cleaned_rows = unprocessed_rows
+    for unprocessed_row in unprocessed_rows:
+        pmc = unprocessed_row.split("\t")[1]
+        file = unprocessed_row.split("\t")[3] if unprocessed_row.split("\t")[3] else unprocessed_row.split("\t")[2]
+        if Path(Path(path) / f"{pmc}_supplementary" / "Processed" / f"{file}_bioc.json").exists() or Path(Path(path) / f"{pmc}_supplementary" / "Processed" / f"{file}_tables.json").exists():
+            cleaned_rows.remove(unprocessed_row)
+
     with open(log_path, "w", encoding="utf-8") as f_out:
-        f_out.writelines(unprocessed_rows)
+        f_out.writelines(cleaned_rows)
 
 
 def onerror(func, path, exc_info):
@@ -436,8 +443,7 @@ def __re_process_supplementary_set(set_no):
             if file.is_dir() or not "Raw" == file.parent.name:
                 continue
             else:
-                if [1 for x in archive_extensions if str(file.absolute()).lower().endswith(x)]:
-                # if ".pptx" in file.name.lower() or ".ppt" in file.name.lower():
+                if file.suffix.lower() != ".pdf":
                     process_supplementary_files([str(file.absolute())])
 
 
@@ -468,8 +474,8 @@ def run():
     """
     Workflow entry point
     """
-    _load_pdf_models()
     check_pmc_bioc_updates()
+
 
 if __name__ == "__main__":
     run()

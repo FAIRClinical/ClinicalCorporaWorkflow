@@ -390,7 +390,7 @@ def process_and_update_rar(archive_path):
     failed_files = []
     processed_dir = Path(archive_path).parent.parent / "Processed"
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
             with rarfile.RarFile(archive_path, 'r') as rar_ref:
                 rar_ref.extractall(temp_dir)
                 extracted_files = [os.path.join(temp_dir, member.filename) for member in rar_ref.infolist() if not member.isdir()]
@@ -411,26 +411,18 @@ def process_and_update_rar(archive_path):
                             file_output_success = True
 
                     if not file_output_success:
-                        failed_files.append(Path(file_path).name)
+                        failed_files.append(file_path)
                 else:
-                    failed_files.append(Path(file_path).name)
+                    failed_files.append(file_path)
 
-            for file_path in extracted_files:
-                try:
-                    with open(file_path, 'r') as f:
-                        pass
-                except Exception:
-                    pass
 
     except Exception as e:
         print(f"Error processing archive {archive_path}: {e}")
-    finally:
-        retry_rmtree(temp_dir)
 
     for file in failed_files:
         log_unprocessed_supplementary_file(
             archive_path,
-            file.filename,
+            Path(file).name,
             "Failed to extract text from the document.",
             str(Path(archive_path).parent.parent.parent),
         )
@@ -444,12 +436,14 @@ def process_and_update_zip(archive_path):
     
     processed_dir = Path(archive_path).parent.parent / "Processed"
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
             
             # Extract files
             with zipfile.ZipFile(archive_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_dir)
-                extracted_files = [os.path.join(temp_dir, member.filename) for member in zip_ref.infolist() if not member.is_dir()]
+                extracted_files = [
+    str(Path(temp_dir) / member.filename) for member in zip_ref.infolist() if not member.is_dir()
+]
             
             for file_path in extracted_files:
                 success, failed_files, reason = process_supplementary_files([file_path])
@@ -470,28 +464,18 @@ def process_and_update_zip(archive_path):
                             file_output_success = True
                     
                     if not file_output_success:
-                        failed_files.append(Path(file_path).name)
+                        failed_files.append(file_path)
                 else:
-                    failed_files.append(Path(file_path).name)
-
-            # Ensure all files are closed before cleanup
-            for file_path in extracted_files:
-                try:
-                    with open(file_path, 'r') as f:
-                        pass  # Open and close to release any lock
-                except Exception:
-                    pass
+                    failed_files.append(file_path)
 
     except Exception as e:
         print(f"Error processing archive {archive_path}: {e}")
-    finally:
-        retry_rmtree(temp_dir)
 
     # Log failed files
     for file in failed_files:
         log_unprocessed_supplementary_file(
             archive_path,
-            file.filename,
+            Path(file).name,
             "Failed to extract text from the document.",
             str(Path(archive_path).parent.parent.parent),
         )
@@ -504,7 +488,7 @@ def process_and_update_tar(archive_path):
     failed_files = []
     processed_dir = Path(archive_path).parent.parent / "Processed"
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
             with tarfile.open(archive_path, 'r') as tar_ref:
                 tar_ref.extractall(temp_dir)
                 extracted_files = [os.path.join(temp_dir, member.name) for member in tar_ref.getmembers() if member.isfile()]
@@ -525,26 +509,17 @@ def process_and_update_tar(archive_path):
                             file_output_success = True
 
                     if not file_output_success:
-                        failed_files.append(Path(file_path).name)
+                        failed_files.append(file_path)
                 else:
-                    failed_files.append(Path(file_path).name)
-
-            for file_path in extracted_files:
-                try:
-                    with open(file_path, 'r') as f:
-                        pass
-                except Exception:
-                    pass
+                    failed_files.append(file_path)
 
     except Exception as e:
         print(f"Error processing archive {archive_path}: {e}")
-    finally:
-        retry_rmtree(temp_dir)
 
     for file in failed_files:
         log_unprocessed_supplementary_file(
             archive_path,
-            file.filename,
+            Path(file).name,
             "Failed to extract text from the document.",
             str(Path(archive_path).parent.parent.parent),
         )

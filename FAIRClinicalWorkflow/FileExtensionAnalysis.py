@@ -4,6 +4,7 @@ import sys
 import tarfile
 import tempfile
 import zipfile
+import magic
 from collections import defaultdict
 from pathlib import Path
 
@@ -16,16 +17,66 @@ from .AC.supplementary_processor import image_extensions, word_extensions, sprea
 powerpoint_extensions = [".pptx", ".ppt", ".odp"]
 word_extensions.append(".txt")
 image_extensions.append(".bmp")
-unique_directories = defaultdict(lambda: defaultdict(lambda: {"total": 0}))
+unique_directories = defaultdict(lambda: defaultdict(lambda: {"total": 0, "files": []}))
 
 
 def reset_directory_tally():
     global unique_directories
-    unique_directories = defaultdict(lambda: defaultdict(lambda: {"total": 0}))
+    unique_directories = defaultdict(lambda: defaultdict(lambda: {"total": 0, "files": []}))
     gc.collect()
 
+def find_original_unidentified_file(file, folder_path, extensions, root):
+    global unique_directories
+    for raw_file in folder_path.rglob("*"):
+        if raw_file.parent.name != "Raw":
+            continue
+        if Path(file).stem == Path(raw_file).stem and Path(file).parent.parent.name == Path(raw_file).parent.parent.name:  # Compare filenames and parent structure
+            mime = magic.Magic(mime=True)
+            file_content = Path(raw_file).read_bytes()
+            file_type = mime.from_buffer(file_content)
+            
+            if file_type in ["text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                             "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+                             "application/vnd.oasis.opendocument.text",
+                             "application/rtf"]:
+                # extensions[".docx"]['total'] += 1
+                # unique_directories[Path(root)][".docx"]["total"] += 1
+                unique_directories[Path(root)]["no_extension"]["files"].append((Path(file).stem, "Word"))
+                unique_directories[Path(root)]["no_extension"]["total"] += 1
+            elif file_type == "application/pdf":
+                # extensions[".pdf"]['total'] += 1
+                # unique_directories[Path(root)][".pdf"]["total"] += 1
+                unique_directories[Path(root)]["no_extension"]["files"].append((Path(file).stem, "PDF"))
+                unique_directories[Path(root)]["no_extension"]["total"] += 1
+            elif file_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                               "application/vnd.oasis.opendocument.spreadsheet", "text/csv",
+                               "text/tsv"]:
+                # extensions[".tsv"]['total'] += 1
+                # unique_directories[Path(root)][".tsv"]["total"] += 1
+                unique_directories[Path(root)]["no_extension"]["files"].append((Path(file).stem, "Table"))
+                unique_directories[Path(root)]["no_extension"]["total"] += 1
+            elif file_type in ["image/png", "image/jpeg"]:
+                # extensions[".jpg"]['total'] += 1
+                # unique_directories[Path(root)][".jpg"]["total"] += 1
+                unique_directories[Path(root)]["no_extension"]["files"].append((Path(file).stem, "Image"))
+                unique_directories[Path(root)]["no_extension"]["total"] += 1
+            elif file_type in ["application/vnd.oasis.opendocument.presentation",
+                               "application/vnd.openxmlformats-officedocument.presentation",
+                               "application/vnd.openxmlformats-officedocument.presentationml.presentation"]:
+                # extensions[".ppt"]['total'] += 1
+                # unique_directories[Path(root)][".ppt"]["total"] += 1
+                unique_directories[Path(root)]["no_extension"]["files"].append((Path(file).stem, "Presentation"))
+                unique_directories[Path(root)]["no_extension"]["total"] += 1
+            else:
+                unique_directories[Path(root)]["no_extension"]["files"].append((Path(file).stem, "no_extension"))
+                unique_directories[Path(root)]["no_extension"]["total"] += 1
+    
+    extensions["no_extension"]['total'] += 1            
+    extensions["no_extension"]['locations'].append(Path(file).stem)
+    return extensions, unique_directories
 
 def get_file_extensions(folder_path):
+    global unique_directories
     reset_directory_tally()
     extensions = defaultdict(lambda: {'total': 0, 'locations': []})
     for root, dirs, files in os.walk(folder_path):
@@ -35,6 +86,8 @@ def get_file_extensions(folder_path):
             location = os.path.relpath(os.path.join(root, file), folder_path)
             if any([x for x in Path(location).parents if str(x).lower().endswith("processed")]):
                 continue
+            if "." not in file.replace("_bioc.json", "").replace("_tables.json", ""):
+                extensions, unique_directories = find_original_unidentified_file(location, Path(folder_path), extensions, root)
             # Get file extension
             file_extension = os.path.splitext(file)[-1]
             if file_extension:
@@ -97,6 +150,8 @@ def process_archive(file_path, archive_extensions, top_level_archive):
         for extracted_file in temp_dir.rglob('*'):
             if extracted_file.is_file():
                 ext = extracted_file.suffix.lower()
+                if not ext:
+                    ext = "no_extension"
 
                 # Build the relative path from the top-level archive
                 relative_path = Path(top_level_archive) / file_path.name
@@ -153,15 +208,25 @@ def print_output(extensions, input_path):
         directory_total = 0
         if any([x for x in archive_extensions if directory.suffix.endswith(x)]):
             for extension in directory_stats.keys():
+                if extension == "no_extension":
+                    continue
                 if extension not in nested_only_stats.keys():
                     nested_only_stats[extension] = directory_stats[extension]
                 else:
                     nested_only_stats[extension]["total"] += directory_stats[extension]["total"]
         for extension in directory_stats.keys():
+            # if extension == "no_extension":
+                # continue
             total = directory_stats[extension]["total"]
             output_msg += F"{extension}: {total} files\n"
             print(F"{extension}: {total} files")
             directory_total += total
+        # if directory_stats["no_extension"]["total"] > 0:
+        #     print("----no extension----")
+        #     output_msg += "----no extension----\n"
+        #     for f, t in directory_stats["no_extension"]["files"]:
+        #         print(f"{t}: {f}")
+        #         output_msg += F"{t}: {f}\n"
         print(F"Total: {directory_total} files")
         print("-----------------------")
         output_msg += F"Total: {directory_total} files\n"
@@ -209,7 +274,7 @@ def print_output(extensions, input_path):
 
 
 def list_grouped_file_types(extensions):
-    total_processed_files = {"Table": 0, "Image": 0, "Word": 0, "Presentation": 0, "PDF": 0, "Archive": 0, "Other": 0,
+    total_processed_files = {"Table": 0, "Image": 0, "Word": 0, "Presentation": 0, "PDF": 0, "Archive": 0, "No Extension": 0, "Other": 0,
                              "Total": 0}
     output_msg = "----- File Type Grouping -----\n"
     for extension, stats in sorted(extensions.items()):
@@ -235,6 +300,10 @@ def list_grouped_file_types(extensions):
             continue
         if extension.endswith(".pdf"):
             total_processed_files["PDF"] += stats["total"]
+            total_processed_files["Total"] += stats["total"]
+            continue
+        if extension == "no_extension":
+            total_processed_files["No Extension"] += stats["total"]
             total_processed_files["Total"] += stats["total"]
             continue
         total_processed_files["Other"] += stats["total"]

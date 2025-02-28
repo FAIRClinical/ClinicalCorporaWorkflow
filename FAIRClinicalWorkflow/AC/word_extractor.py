@@ -387,17 +387,21 @@ def process_word_document(file):
             paragraphs = [(x.text, True if text_sizes and x.style.font.size and int(x.style.font.size) > min(
                 text_sizes) else False) for x in doc.paragraphs]
         except ValueError as ve:
-            if not file.lower().endswith(".docx"):
-                paragraphs, tables = extract_text_from_doc(file)
-                if paragraphs:
-                    logging.info(
-                        F"File {file} was converted to .docx as a copy within the same directory for processing.")
+            try:
+                if not file.lower().endswith(".docx"):
+                    paragraphs, tables = extract_text_from_doc(file)
+                    if paragraphs:
+                        logging.info(
+                            F"File {file} was converted to .docx as a copy within the same directory for processing.")
+                    else:
+                        logging.info(
+                            F"File {file} could not be processed correctly. It is likely a pre-2007 word document or problematic.")
+                        return False
                 else:
-                    logging.info(
-                        F"File {file} could not be processed correctly. It is likely a pre-2007 word document or problematic.")
+                    logging.info(F"File {file} could not be processed correctly.")
                     return False
-            else:
-                logging.info(F"File {file} could not be processed correctly.")
+            except ValueError as ve:
+                logging.info(F"File {file} raised the error:\n{ve}")
                 return False
         except Exception as ex:
             logging.info(F"File {file} raised the error:\n{ex}")

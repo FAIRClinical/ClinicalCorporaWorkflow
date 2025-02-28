@@ -4,6 +4,7 @@ import tarfile
 import bioc
 from bioc import biocjson
 import unicodedata
+import sys
 
 
 def compare_directory_contents(directory_one, directory_two):
@@ -57,7 +58,7 @@ def compare_file_contents(file_one, file_two):
 
 def get_tar_filenames(archive_path):
     with tarfile.open(archive_path, "r:gz") as tar:
-        return [str(member.name).replace("_bioc.json", "").replace("_tables.json", "") for member in tar.getmembers() if member.isfile() and not member.issym() and not member.islnk()]
+        return [str(member.name).replace("_bioc.json", "").replace("_tables.json", "") for member in tar.getmembers() if member.isfile()]
 
 def normalize_filenames(filenames):
     return {normalize_unicode(Path(f).as_posix().strip()) for f in filenames}
@@ -69,24 +70,30 @@ def compare_tar_filenames(contents_one, contents_two):
     missing_in_one = [x for x in contents_two if x not in contents_one]
     missing_in_two = [x for x in contents_one if x not in contents_two]
     for file in missing_in_one:
-        print(f"File missing from first archive: {file}")
-    for file in missing_in_two:
-        print(f"File missing from second archive: {file}")
+        if "." not in file:
+            print(f"File missing from first archive: {file}")
+    # for file in missing_in_two:
+        # print(f"File missing from second archive: {file}")
 
 
 if __name__ == "__main__":
-    assert sys.argv[1] and sys.argv[2], "Please provide two archive paths as arguments."
+    # assert sys.argv[1] and sys.argv[2], "Please provide two archive paths as arguments."
 
-    path_one = Path(sys.argv[1]) 
-    path_two = Path(sys.argv[2]) 
+    # path_one = Path(sys.argv[1]) 
+    # path_two = Path(sys.argv[2]) 
     
-    assert Path(sys.argv[1]).exists(), "The first archive does not exist."
-    assert Path(sys.argv[2]).exists(), "The second archive does not exist."  
+    # assert Path(sys.argv[1]).exists(), "The first archive does not exist."
+    # assert Path(sys.argv[2]).exists(), "The second archive does not exist."  
 
-    
-    if path_one.suffixes == ['.tar', '.gz'] and path_two.suffixes == ['.tar', '.gz']:
-        contents_one = normalize_filenames(get_tar_filenames(path_one))
-        contents_two = normalize_filenames(get_tar_filenames(path_two))
-        compare_tar_filenames(contents_one, contents_two)
-    else:
-        print("Only tar.gz archives are supported in this mode.")
+
+
+    for set_no in ["000", "030", "035", "040", "045", "050", "055", "060", "065", "070", "075", "080", "085", "090", "095", "100", "105"]:
+        path_one = Path(f"D:\\OneDrive\\The University of Nottingham\\FAIRClinical - Data\\Workflow_outputs_v1\\PMC{set_no}XXXXX_json_ascii_supplementary.tar.gz")
+        path_two = Path(f"D:\\OneDrive\\The University of Nottingham\\FAIRClinical - Data\\Workflow_outputs_v2\\PMC{set_no}XXXXX_json_ascii_supplementary.tar.gz")
+        
+        if path_one.suffixes == ['.tar', '.gz'] and path_two.suffixes == ['.tar', '.gz']:
+            contents_one = normalize_filenames(get_tar_filenames(path_one))
+            contents_two = normalize_filenames(get_tar_filenames(path_two))
+            compare_tar_filenames(contents_one, contents_two)
+        else:
+            print("Only tar.gz archives are supported in this mode.")
