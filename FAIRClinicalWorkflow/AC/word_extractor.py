@@ -332,7 +332,21 @@ def convert_older_doc_file(file, output_dir):
             stderr=subprocess.PIPE,
         )
         return docx_path
-    elif operating_system == "mac":
+    elif operating_system == "Darwin":  # macOS
+        try:
+            # AppleScript to open the file in Word and save as .docx
+            applescript = f'''
+            tell application "Microsoft Word"
+                open "{file}"
+                save as active document file name "{docx_path}" file format format document
+                close active document saving no
+            end tell
+            '''
+            subprocess.run(["osascript", "-e", applescript], check=True)
+            return docx_path
+        except Exception as e:
+            return False
+    else:
         return False
 
 
