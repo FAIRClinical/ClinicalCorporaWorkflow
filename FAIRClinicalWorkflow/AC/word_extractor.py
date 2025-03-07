@@ -7,6 +7,7 @@ import subprocess
 from os.path import join
 import logging
 from pathlib import Path
+import argparse
 import sys
 
 from io import BytesIO
@@ -20,7 +21,12 @@ logging.basicConfig(filename="WordExtractor.log", level=logging.ERROR, format="%
                                                                               "message)s")
 
 filename = ""
+args = None
 
+def set_args():
+    global args
+    parser = argparse.ArgumentParser()
+    args, _ = parser.parse_known_args()
 
 def replace_unicode(text):
     """
@@ -435,10 +441,11 @@ def process_word_document(file):
         paragraphs = [x for x in paragraphs if x[0]]
         if not Path(output_path).exists():
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        global args
         with open(F"{output_path}_bioc.json", "w+", encoding="utf-8") as f_out:
             # TODO: Test if datatype causes a problem
             text = get_text_bioc(paragraphs, Path(file).name)
-            if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+            if args.sentence_splitter:
                 text = apply_sentence_splitting(text)
             json.dump(text, f_out, indent=4)
 

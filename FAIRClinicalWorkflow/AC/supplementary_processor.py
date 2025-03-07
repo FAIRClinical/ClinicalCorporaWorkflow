@@ -7,12 +7,13 @@ import sys
 import tarfile
 import zipfile
 import rarfile
-rarfile.UNRAR_TOOL = r"C:\\Program Files (x86)\\UnRAR\\UnRAR.exe"  # Windows
+#rarfile.UNRAR_TOOL = r"C:\\Program Files (x86)\\UnRAR\\UnRAR.exe"  # Windows
 import PyPDF2
 import traceback
 import magic
 import time
 import tempfile
+import argparse
 from os.path import exists
 from pathlib import Path
 
@@ -23,7 +24,7 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
 from .file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
-    gzip_extensions, search_zip, search_tar, archive_extensions
+    gzip_extensions, search_zip, search_tar, archive_extensions, rar_extensions
 from .pdf_extractor import convert_pdf_result, get_text_bioc
 from .word_extractor import process_word_document
 from .excel_extractor import process_spreadsheet, get_tables_bioc
@@ -38,7 +39,13 @@ image_extensions = [".jpg", ".png", ".jpeg", '.tif', '.tiff']
 supplementary_types = word_extensions + spreadsheet_extensions + image_extensions + [".pdf", ".pptx"]
 
 pdf_converter: PdfConverter = None
+args = None
 
+
+def set_args():
+    global args
+    parser = argparse.ArgumentParser()
+    args, _ = parser.parse_known_args()
 
 def _load_pdf_models():
     global pdf_converter
@@ -175,8 +182,9 @@ def __extract_pdf_data(locations=None, file=None):
             #     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as tables_out:
             #         json.dump(tables, tables_out, indent=4)
             if text:
+                global args
                 with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+", encoding="utf-8") as text_out:
-                    if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                    if args.sentence_splitter:
                         biocjson.dump(apply_sentence_splitting(text), text_out, indent=4)
                     else:
                         biocjson.dump(text, text_out, indent=4)
@@ -207,8 +215,9 @@ def __extract_pdf_data(locations=None, file=None):
                 if not Path(output_path).parent.exists():
                     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
                 if text:
+                    global args
                     with open(output_path, "w+", encoding="utf-8") as text_out:
-                        if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                        if args.sentence_splitter:
                             biocjson.dump(apply_sentence_splitting(text), text_out, indent=4)
                         else:
                             biocjson.dump(text, text_out, indent=4)
@@ -328,10 +337,11 @@ def __extract_image_data(locations=None, file=None, pmcid=None):
             # Create a JSON output file for the extracted tables
             output_path = F"{os.path.join(base_dir, file_name + '_bioc.json')}"
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            global args
             with open(output_path, "w+", encoding="utf-8") as f_out:
                 # Generate BioC format representation of the tables
                 json_output = get_text_bioc(text, file, url)
-                if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                if args.sentence_splitter:
                     json_output = apply_sentence_splitting(json_output)
                 json.dump(json_output, f_out, indent=4)
             return True, reason
@@ -363,8 +373,9 @@ def __extract_powerpoint_data(locations=None, file=None):
                 base_dir = base_dir.replace("Raw", "Processed")
                 if not Path(base_dir).exists():
                     Path(base_dir).mkdir(parents=True, exist_ok=True)
+                global args
                 with open(F"{os.path.join(base_dir, file_name + '_bioc.json')}", "w", encoding="utf-8") as text_out:
-                    if len(sys.argv) > 1 and (sys.argv[1] == "-s" or sys.argv[1] == "--sentence_split"):
+                    if args.sentence_splitter:
                         text = apply_sentence_splitting(text)
                     biocjson.dump(text, text_out, indent=4)
                 return True
@@ -636,6 +647,9 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
         elif "." not in file.lower():
             success, failed_files, reason = __extract_unknown_file_text(file=file)
     return success, failed_files, reason
+
+def set_unrar_path(path):
+    rarfile.UNRAR_TOOL = path
 
 
 def generate_file_report(input_directory):

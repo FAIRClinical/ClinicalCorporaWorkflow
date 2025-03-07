@@ -244,7 +244,7 @@ def process_pmc_id(pmc_id):
 def process_file(input_file):
     logging.info(F"Processing file {input_file}")
     bioc_file = load_file(input_file)
-    directory = input_file[:str(input_file).rfind("/")] if "/" in input_file else ""
+    directory = Path(input_file).parent.absolute()
     result = get_supp_docs(directory, bioc_file)
     if not result:
         missing_html_files.append(F"{bioc_file.documents[0].id}")
