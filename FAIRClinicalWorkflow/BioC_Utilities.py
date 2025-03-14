@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 from bioc import biocjson, biocxml, BioCCollection, BioCSentence
 import argparse
@@ -40,26 +41,41 @@ def apply_sentence_splitting(article):
     :param BioCCollection article:
     :return: BiOCCollection
     """
-    assert isinstance(article, BioCCollection)
+    is_dict = False
+    if isinstance(article, dict):
+        is_dict = True
     new_article = article
-    for d in range(len(article.documents)):
-        document = article.documents[d]
-        for p in range(len(document.passages)):
-            passage = document.passages[p]
-            old_text = passage.text
-            old_offset = passage.offset
-            sentences = split_text_into_sentences_delim(old_text) #["".join(x) for x in split_text_into_sentences_delim(old_text) if x[0]]
+    docs = article.documents if not is_dict else article['documents']
+    for d in range(len(docs)):
+        document = article.documents[d] if not is_dict else article['documents'][d]
+        passages = document.passages if not is_dict else document['passages']
+        for p in range(len(passages)):
+            passage = document.passages[p] if not is_dict else document['passages'][p]
+            old_text = passage.text if not is_dict else passage['text']
+            old_offset = passage.offset if not is_dict else passage['offset']
+            sentences = split_text_into_sentences_delim(old_text)
             if sentences:
                 if old_text[-1] != sentences[-1][-1]:
                     sentences[-1] += old_text[-1]
-
             for sentence in sentences:
-                bioc_sentence = BioCSentence()
-                bioc_sentence.text = sentence
-                bioc_sentence.offset = old_offset
+                bioc_sentence = BioCSentence() if not is_dict else {
+                    "infons": {},
+                    "offset": 0,
+                    "text": "",
+                    "annotations": [],
+                    "relations": []
+                }
+                if not is_dict:
+                    bioc_sentence.text = sentence
+                    bioc_sentence.offset = old_offset
+                else:
+                    bioc_sentence['text'] = sentence
+                    bioc_sentence['offset'] = old_offset
                 old_offset += len(sentence)
-                new_article.documents[d].passages[p].sentences.append(bioc_sentence)
-
+                if not is_dict:
+                    new_article.documents[d].passages[p].sentences.append(bioc_sentence)
+                else:
+                    new_article['documents'][d]['passages'][p]['sentences'].append(bioc_sentence)
     return new_article
 
 
@@ -80,13 +96,13 @@ def load_bioc_file(input_file):
 def __main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", required=True, help="Input BioC file or directory")
-    parser.add_argument("-o", "--output", required=True, help="Output Directory")
+    # parser.add_argument("-o", "--output", required=True, help="Output Directory")
     parser.add_argument("-t", "--convert-type", type=str, required=False, help="Output Type")
     parser.add_argument("-s", "--sentence-splitter", required=False, action="store_true", help="Sentence Splitter")
 
     args = parser.parse_args()
     input_path = Path(args.input)
-    output_path = Path(args.output)
+    # output_path = Path(args.output)
     will_convert = args.convert_type
     will_sentence_split = args.sentence_splitter
 
@@ -95,24 +111,26 @@ def __main():
 
     assert input_path.exists()
 
-    if not output_path.exists():
-        output_path.mkdir()
+    # if not output_path.exists():
+        # output_path.mkdir()
 
-    assert output_path.exists()
+    # assert output_path.exists()
 
     input_files = [x for x in input_path.rglob('*.json')] + [x for x in input_path.rglob('*.xml')]
 
     for file in input_files:
         if file.suffix.lower() not in [".json", ".xml"]:
             continue
+        if not file.name.endswith("_bioc.json"):
+            continue
         if will_sentence_split:
             bioc_file = load_bioc_file(file)
             bioc_file = apply_sentence_splitting(bioc_file)
-            with open(output_path.joinpath(file.name), 'w') as f_out:
+            with open(file.absolute(), 'w') as f_out:
                 if file.suffix == '.xml':
                     biocxml.dump(bioc_file, f_out)
                 else:
-                    biocjson.dump(bioc_file, f_out)
+                    biocjson.dump(bioc_file, f_out, indent=4)
         elif will_convert:
             if will_convert in ["json", "xml"]:
                 convert_bioc_format(file, will_convert)
