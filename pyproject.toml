@@ -132,5 +132,6 @@ dependencies = [
     "xlrd>=2.0.1",
     "xlsxwriter>=3.2.2",
     "zipp>=3.21.0",
-    "rarfile>=4.2"
+    "rarfile>=4.2",
+    "python-magic-bin>=0.4.14",
 ]
