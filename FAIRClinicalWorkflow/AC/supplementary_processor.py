@@ -7,7 +7,7 @@ import sys
 import tarfile
 import zipfile
 import rarfile
-rarfile.UNRAR_TOOL = r"C:\\Program Files (x86)\\UnRAR\\UnRAR.exe"  # Windows
+#rarfile.UNRAR_TOOL = r"C:\\Program Files (x86)\\UnRAR\\UnRAR.exe"  # Windows
 import PyPDF2
 import traceback
 import magic
@@ -23,7 +23,7 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
 from .file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
-    gzip_extensions, search_zip, search_tar, archive_extensions
+    gzip_extensions, search_zip, search_tar, archive_extensions, rar_extensions
 from .pdf_extractor import convert_pdf_result, get_text_bioc
 from .word_extractor import process_word_document
 from .excel_extractor import process_spreadsheet, get_tables_bioc
@@ -636,6 +636,9 @@ def process_supplementary_files(supplementary_files, output_format='json', pmcid
         elif "." not in file.lower():
             success, failed_files, reason = __extract_unknown_file_text(file=file)
     return success, failed_files, reason
+
+def set_unrar_path(path):
+    rarfile.UNRAR_TOOL = path
 
 
 def generate_file_report(input_directory):

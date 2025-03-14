@@ -1,28 +1,20 @@
 from pathlib import Path
 import os
-os.chdir(Path(__file__).parent)
-
-import csv
 import logging
-
-
 import shutil
-import sys
 import tarfile
-
 import ftplib
+import argparse
 import re
 from datetime import datetime
-
-
 import regex
 from bioc import biocjson
-
 from .BioC_Utilities import apply_sentence_splitting
 from .MovieRemoval import execute_movie_removal, video_extensions
 from .PMC_BulkFilter import filter_manually as filter_articles
 from .SupplementaryDownloader import process_directory as get_supplementary_files
-from .AC.supplementary_processor import process_supplementary_files, _load_pdf_models, word_extensions, archive_extensions
+from .AC.supplementary_processor import process_supplementary_files, set_unrar_path
+os.chdir(Path(__file__).parent)
 
 # FTP connection
 ftp_server = "ftp.ncbi.nlm.nih.gov"
@@ -258,6 +250,25 @@ def update_local_archive_versions(archive_name, date_modified, new_archive=False
         f_out.truncate()
         f_out.writelines(output)
 
+def process_specific_set(set_no):
+    with ftplib.FTP(ftp_server) as ftp:
+        ftp.login()
+        files = list_archives_with_dates(ftp, ftp_directory)
+    file_found = False
+    for filename, date_modified in files:
+        if filename.startswith(F"PMC{set_no}"):
+            file_found = True
+            logger.info(F"Updating {filename}")
+            # An update is found for the already stored archive
+            with ftplib.FTP(ftp_server) as ftp:
+                ftp.login()
+                ftp.cwd(ftp_directory)
+                download_archive(ftp, filename, "Output")
+                process_new_archive(os.path.join("Output", filename))
+                update_local_archive_versions(filename, date_modified, True)
+                logger.info(F"Processed new archive: {filename}")
+    if not file_found:
+        logger.info(F"No archive found for provided set {set_no}.")
 
 def check_pmc_bioc_updates():
     """
@@ -435,20 +446,19 @@ def __identify_missing_processed_files(set_no, file_extensions=None):
 
 
 def __re_process_supplementary_set(set_no):
-    # __clear_processed_files(set_no)
-    sets = ["055", "060", "065", "070", "075", "080", "085", "090", "095", "100", "105"]
+    sets = ["000", "030", "035", "040", "045", "050", "055", "060", "065", "070", "075", "080", "085", "090", "095", "100", "105"]
     for old_set in sets:
-        set_path = Path(f"D:\\Backups\\PMC{old_set}XXXXX_json_ascii_supplementary")
+        set_path = Path(f"D:\\Backups\\old_v2\\PMC{old_set}XXXXX_json_ascii_supplementary")
+        __clear_processed_files(set_path)
         for file in set_path.rglob("*"):
             if file.is_dir() or not "Raw" == file.parent.name:
                 continue
             else:
-                if file.suffix.lower() != ".pdf":
-                    process_supplementary_files([str(file.absolute())])
+                # if file.suffix.lower() != ".pdf":
+                process_supplementary_files([str(file.absolute())])
 
 
-def __clear_processed_files(set_no):
-    set_path = Path(f"D:\\Backups\\PMC{set_no}XXXXX_json_ascii_supplementary")
+def __clear_processed_files(set_path):
     for file in set_path.rglob("*"):
         if file.is_dir() and file.name == "Processed":
             shutil.rmtree(file)
@@ -474,8 +484,32 @@ def run():
     """
     Workflow entry point
     """
-    check_pmc_bioc_updates()
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--set_no", required=False, help="Input BioC file or directory")
+    parser.add_argument("-u", "--unrar", required=True, help="Location of unrar executable")
+    args = parser.parse_args()
+    if Path(args.unrar.exists()):
+        set_unrar_path(Path(args.unrar).absolute())
+    else:
+        print("The unrar executable was not found.")
+        return
+    if args.set_no:
+        assert isinstance(args.set_no, str), "The set number must be a string."
+        assert len(args.set_no) == 3, "The set number must be 3 digits long."
+        assert int(args.set_no), "The set number must be a valid number."
+        start = datetime.now()
+        print("Starting the clinical corpora specific set process at " + str(start))
+        process_specific_set(args.set_no)
+        stop = datetime.now()
+        print("Finished the clinical corpora specific set process at " + str(stop))
+        print(F"Time taken: {stop - start}")
+    else:
+        start = datetime.now()
+        print("Starting the clinical corpora update process at " + str(start))
+        check_pmc_bioc_updates()
+        stop = datetime.now()
+        print("Finished the clinical corpora update process at " + str(stop))
+        print(F"Time taken: {stop - start}")
 
 if __name__ == "__main__":
     run()

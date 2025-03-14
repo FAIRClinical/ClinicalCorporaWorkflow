@@ -4,10 +4,11 @@ import zipfile
 import os
 from collections import defaultdict
 
-zip_extensions = [".zip", ".7z", ".rar", ".zlib", ".7-zip", ".pzip", ".xz"]
+zip_extensions = [".zip", ".7z", ".zlib", ".7-zip", ".pzip", ".xz"]
+rar_extensions = [".rar"]
 tar_extensions = [".tgz", ".tar"]
 gzip_extensions = [".gzip", ".gz"]
-archive_extensions = zip_extensions + tar_extensions + gzip_extensions
+archive_extensions = zip_extensions + tar_extensions + gzip_extensions + rar_extensions
 
 unique_directories = defaultdict(lambda: defaultdict(lambda: {"total": 0}))
 
