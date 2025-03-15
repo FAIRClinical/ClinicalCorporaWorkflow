@@ -11,7 +11,7 @@ python -m FAIRClinicalWorkflow -u "path_to_my_unrar_executable"
 
 Process a specific PMC archive set number (e.g. set 030):
 ```
-python -m FAIRClinicalWorkflow -u "path_to_my_unrar_executable" -s "030"
+python -m FAIRClinicalWorkflow -u "path_to_my_unrar_executable" -n "030"
 ```
 
 

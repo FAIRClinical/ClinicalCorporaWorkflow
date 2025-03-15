@@ -485,7 +485,7 @@ def run():
     Workflow entry point
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--set_no", required=False, help="Input BioC file or directory")
+    parser.add_argument("-n", "--set_no", required=False, help="Input BioC file or directory")
     parser.add_argument("-u", "--unrar", required=True, help="Location of unrar executable")
     args = parser.parse_args()
     if Path(args.unrar.exists()):
