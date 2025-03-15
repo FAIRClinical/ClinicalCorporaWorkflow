@@ -13,7 +13,7 @@ from .BioC_Utilities import apply_sentence_splitting
 from .MovieRemoval import execute_movie_removal, video_extensions
 from .PMC_BulkFilter import filter_manually as filter_articles
 from .SupplementaryDownloader import process_directory as get_supplementary_files
-from .AC.supplementary_processor import process_supplementary_files, set_unrar_path
+from .AC.supplementary_processor import process_supplementary_files, set_unrar_path, set_args
 os.chdir(Path(__file__).parent)
 
 # FTP connection
@@ -486,13 +486,15 @@ def run():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--set_no", required=False, help="Input BioC file or directory")
-    parser.add_argument("-u", "--unrar", required=True, help="Location of unrar executable")
+    parser.add_argument("-u", "--unrar", required=True, help="Location of unrar executable")#
+    parser.add_argument("-s", "--sentence_splitter", required=False, action="store_true", help="Sentence Splitter")
     args = parser.parse_args()
     if Path(args.unrar.exists()):
         set_unrar_path(Path(args.unrar).absolute())
     else:
         print("The unrar executable was not found.")
         return
+    set_args()
     if args.set_no:
         assert isinstance(args.set_no, str), "The set number must be a string."
         assert len(args.set_no) == 3, "The set number must be 3 digits long."
