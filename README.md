@@ -13,6 +13,10 @@ Process a specific PMC archive set number (e.g. set 030):
 ```
 python -m FAIRClinicalWorkflow -u "path_to_my_unrar_executable" -n "030"
 ```
+Execute the workflow with sentence splitting applied to the output.
+```
+python -m FAIRClinicalWorkflow -u "path_to_my_unrar_executable" -s
+```
 
 
 ## Requirements
