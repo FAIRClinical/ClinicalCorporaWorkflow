@@ -37,3 +37,12 @@ uv pip install
 
 ### UnRaR
 To ensure the best extraction of .rar archive types, please ensure you have the UnRaR executable available on your machine. The appropriate version for your operating system can be found here: https://www.rarlab.com/rar_add.htm 
+
+
+## Sentence Splitting
+As well as the CLI workflow argument to sentence split the supplementary material output, you may wish to apply sentence splitting to the PubMed Central full-text articles.
+
+The script BioC_Utilities.py can be executed to apply sentence splitting to any BioC documents within a provided directory, using the following commands:
+```
+python FAIRClinicalWorkflow/BioC_Utilities.py -i <input_directory> -o <output_directory> -s
+```

@@ -96,13 +96,13 @@ def load_bioc_file(input_file):
 def __main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", required=True, help="Input BioC file or directory")
-    # parser.add_argument("-o", "--output", required=True, help="Output Directory")
+    parser.add_argument("-o", "--output", required=True, help="Output Directory")
     parser.add_argument("-t", "--convert-type", type=str, required=False, help="Output Type")
     parser.add_argument("-s", "--sentence-splitter", required=False, action="store_true", help="Sentence Splitter")
 
     args = parser.parse_args()
     input_path = Path(args.input)
-    # output_path = Path(args.output)
+    output_path = Path(args.output)
     will_convert = args.convert_type
     will_sentence_split = args.sentence_splitter
 
@@ -111,17 +111,15 @@ def __main():
 
     assert input_path.exists()
 
-    # if not output_path.exists():
-        # output_path.mkdir()
+    if not output_path.exists():
+        output_path.mkdir()
 
-    # assert output_path.exists()
+    assert output_path.exists()
 
     input_files = [x for x in input_path.rglob('*.json')] + [x for x in input_path.rglob('*.xml')]
 
     for file in input_files:
         if file.suffix.lower() not in [".json", ".xml"]:
-            continue
-        if not file.name.endswith("_bioc.json"):
             continue
         if will_sentence_split:
             bioc_file = load_bioc_file(file)
