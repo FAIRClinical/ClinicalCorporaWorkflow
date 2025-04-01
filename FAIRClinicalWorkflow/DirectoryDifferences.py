@@ -1,10 +1,8 @@
 import os
 from pathlib import Path
 import tarfile
-import bioc
 from bioc import biocjson
 import unicodedata
-import sys
 
 
 def compare_directory_contents(directory_one, directory_two):
@@ -67,13 +65,24 @@ def normalize_unicode(s):
     return unicodedata.normalize("NFC", s)
 
 def compare_tar_filenames(contents_one, contents_two):
-    missing_in_one = [x for x in contents_two if x not in contents_one]
+    # missing_in_one = [x for x in contents_two if x not in contents_one]
+    # missing_in_one_raw = [x for x in missing_in_one if Path(x).parent.name == "Raw"]
+    # missing_in_one_processed = [x for x in missing_in_one if Path(x).parent.name == "Processed"]
     missing_in_two = [x for x in contents_one if x not in contents_two]
-    for file in missing_in_one:
-        if "." not in file:
-            print(f"File missing from first archive: {file}")
+    missing_in_two_raw = [x for x in missing_in_two if Path(x).parent.name == "Raw"]
+    missing_in_two_processed = [x for x in missing_in_two if Path(x).parent.name == "Processed"]
+
+    # for file in missing_in_one:
+    #     if "." not in file:
+    #         print(f"File missing from first archive: {file}")
     # for file in missing_in_two:
-        # print(f"File missing from second archive: {file}")
+    #     print(f"File missing from second archive: {file}")
+    print("----- Raw files -----")
+    for file in missing_in_two_raw:
+        print(f"File missing from second archive Raw directory: {file}")
+    print("----- Processed files -----")
+    for file in missing_in_two_processed:
+        print(f"File missing from second archive Processed directory: {file}")
 
 
 if __name__ == "__main__":
@@ -92,8 +101,10 @@ if __name__ == "__main__":
         path_two = Path(f"D:\\OneDrive\\The University of Nottingham\\FAIRClinical - Data\\Workflow_outputs_v2\\PMC{set_no}XXXXX_json_ascii_supplementary.tar.gz")
         
         if path_one.suffixes == ['.tar', '.gz'] and path_two.suffixes == ['.tar', '.gz']:
+            print(f"----- Comparing set {set_no} -----")
             contents_one = normalize_filenames(get_tar_filenames(path_one))
             contents_two = normalize_filenames(get_tar_filenames(path_two))
             compare_tar_filenames(contents_one, contents_two)
+            print("\n")
         else:
             print("Only tar.gz archives are supported in this mode.")

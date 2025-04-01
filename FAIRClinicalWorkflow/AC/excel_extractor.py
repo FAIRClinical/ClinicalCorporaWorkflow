@@ -133,17 +133,17 @@ def replace_unicode(text):
     """
     if not text:
         return None
-    if type(text) == list:
+    if isinstance(text, list):
         clean_texts = []
         for t in text:
-            if t and type(t) == str:
+            if t and isinstance(t, str):
                 clean_texts.append(
                     t.replace('\u00a0', ' ').replace('\u00ad', '-').replace('\u2010', '-').replace('\u00d7', 'x'))
             else:
                 clean_texts.append(t)
         return clean_texts
     else:
-        if type(text) == str:
+        if isinstance(text, str):
             clean_text = text.replace('\u00a0', ' ').replace('\u00ad', '-').replace('\u2010', '-').replace('\u00d7',
                                                                                                            'x')
         else:

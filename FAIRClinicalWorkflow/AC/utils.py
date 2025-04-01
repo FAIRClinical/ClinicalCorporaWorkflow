@@ -425,7 +425,7 @@ def assign_heading_by_dag(paper):
                             mapping_dict_with_dag.update({heading: [path[0]]})
                         if len(path) > 2:
                             mapping_dict_with_dag.update({heading: path[1:-1]})
-                except:
+                except Exception:
                     new_target = paper[list(paper.keys())[i + i2 + 1]][0]
                     paths = nx.all_shortest_paths(
                         g, paper[previous_heading][-1], new_target, weight='cost')

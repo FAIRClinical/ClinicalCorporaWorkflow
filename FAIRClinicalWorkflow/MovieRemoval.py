@@ -53,9 +53,9 @@ def remove_movie_files(input_directory):
                     continue
             except IOError as io:
                 print(F"IO Error occurred, please check the exception and try again: {io}")
-            except IndexError as ie:
-                print(F"No supplementary folders identified. Please check your input directory exists and contains "
-                      F"supplementary folders")
+            except IndexError:
+                print("No supplementary folders identified. Please check your input directory exists and contains "
+                      "supplementary folders")
             except zipfile.BadZipfile as bz:
                 print(F"Bad zip file occurred: {bz}.")
             except Exception as ex:
@@ -211,7 +211,7 @@ def generate_video_log(videos, log_path):
 def copy_download_log(input_directory):
     log_directory = input_directory
     pmc = get_pmc_from_path(input_directory)
-    download_log_path = join(log_directory, F"download_log.tsv")
+    download_log_path = join(log_directory, "download_log.tsv")
     included_log_path = download_log_path.replace("download_log", F"{pmc}_json_ascii_supplementary_included")
     excluded_log_entries = []
     try:
@@ -244,8 +244,8 @@ def copy_download_log(input_directory):
                         excluded_log_entries.append((pmcid, url, None))
                     continue
                 included_out.write(F"{pmcid}_supplementary\t{pmcid}\t{url}\n")
-    except IOError as io:
-        print(F"Download log file not found. Failed to produce the new excluded supplementary log file.")
+    except IOError:
+        print("Download log file not found. Failed to produce the new excluded supplementary log file.")
         return
     generate_video_log(excluded_log_entries, log_directory)
     # remove the download log

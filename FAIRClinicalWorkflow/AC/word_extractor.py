@@ -2,17 +2,13 @@ import datetime
 import json
 import os
 import platform
-import re
 import subprocess
 from os.path import join
 import logging
 from pathlib import Path
 import argparse
-import sys
 
-from io import BytesIO
 
-import olefile
 from docx import Document
 
 from FAIRClinicalWorkflow.BioC_Utilities import apply_sentence_splitting
@@ -325,7 +321,7 @@ def convert_older_doc_file(file, output_dir):
             doc.Close()
             word.Quit()
             return docx_path
-        except Exception as e:
+        except Exception:
             return False
         finally:
             word.Quit()
@@ -350,7 +346,7 @@ def convert_older_doc_file(file, output_dir):
             '''
             subprocess.run(["osascript", "-e", applescript], check=True)
             return docx_path
-        except Exception as e:
+        except Exception:
             return False
     else:
         return False
@@ -406,7 +402,7 @@ def process_word_document(file):
             text_sizes = set([int(x.style.font.size) for x in doc.paragraphs if x.style.font.size])
             paragraphs = [(x.text, True if text_sizes and x.style.font.size and int(x.style.font.size) > min(
                 text_sizes) else False) for x in doc.paragraphs]
-        except ValueError as ve:
+        except ValueError:
             try:
                 if not file.lower().endswith(".docx"):
                     paragraphs, tables = extract_text_from_doc(file)

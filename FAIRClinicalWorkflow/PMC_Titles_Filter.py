@@ -13,7 +13,7 @@ def load_pmc_bioc(file_path):
     with open(file_path, "r") as f_in:
         try:
             bioc = biocjson.load(f_in)
-        except:
+        except Exception:
             # PMC puts the BioC collection INSIDE an array,
             # so we expand it before loading with bioc module
             bioc = json.load(f_in)
@@ -76,7 +76,7 @@ def scan_bioc_files(results):
             else:
                 os.rename(file_path, os.path.join(full_text_folder, file))
             parsed_count += 1
-        except Exception as ex:
+        except Exception:
             print(file_path)
             problem_count += 1
 

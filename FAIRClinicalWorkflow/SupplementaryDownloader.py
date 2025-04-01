@@ -130,7 +130,7 @@ def download_supplementary_files(supp_links, new_dir, pmc_id, parent_dir, sessio
             log_download(log_directory, new_dir, pmc_id, link_address)
             continue
         time.sleep(random.random() * 10)
-        file_response = download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, session)
+        download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, session)
 
 
 def get_supp_docs(input_directory, bioc_file, session, is_id=False):
@@ -211,7 +211,6 @@ def process_directory(input_directory):
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('https://', adapter)
     new_files = [x for x in os.listdir(input_directory) if isfile(join(input_directory, x))]
-    skip = True
     for file in new_files:
         if ".json" not in file:
             continue

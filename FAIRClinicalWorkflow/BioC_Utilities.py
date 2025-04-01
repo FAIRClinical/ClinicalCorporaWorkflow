@@ -1,12 +1,11 @@
 from pathlib import Path
-import json
 
-from bioc import biocjson, biocxml, BioCCollection, BioCSentence
+from bioc import biocjson, biocxml, BioCSentence
 import argparse
 try:
-    from .SIBiLS_sentence_splitter import sentence_split, split_text_into_sentences_delim
+    from .SIBiLS_sentence_splitter import split_text_into_sentences_delim
 except ImportError:
-    from SIBiLS_sentence_splitter import sentence_split, split_text_into_sentences_delim
+    from SIBiLS_sentence_splitter import split_text_into_sentences_delim
 
 
 def convert_bioc_format(file, output_type):

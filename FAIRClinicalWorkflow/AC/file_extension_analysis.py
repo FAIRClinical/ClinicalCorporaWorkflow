@@ -166,7 +166,7 @@ def build_data_rows(structure):
         # Iterate over the extensions for each file
         for extension in structure[file].keys():
             # Check if the value associated with the extension is an integer
-            if type(structure[file][extension]) is int:
+            if isinstance(structure[file][extension], int):
                 # If it is an integer, add a data row with the file name,
                 # extension, and the integer value to the data table
                 data_table.append([file, extension, structure[file][extension]])

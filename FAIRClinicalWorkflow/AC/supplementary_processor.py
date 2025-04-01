@@ -1,30 +1,25 @@
 import gc
 import json
 import os.path
-import secrets
 import shutil
-import sys
 import tarfile
 import zipfile
 import rarfile
 #rarfile.UNRAR_TOOL = r"C:\\Program Files (x86)\\UnRAR\\UnRAR.exe"  # Windows
 import PyPDF2
-import traceback
 import magic
 import time
 import tempfile
 import argparse
-from os.path import exists
 from pathlib import Path
 
-import marker.output
 from bioc import biocjson
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
 from .file_extension_analysis import get_file_extensions, zip_extensions, tar_extensions, \
-    gzip_extensions, search_zip, search_tar, archive_extensions, rar_extensions
+    gzip_extensions, archive_extensions
 from .pdf_extractor import convert_pdf_result, get_text_bioc
 from .word_extractor import process_word_document
 from .excel_extractor import process_spreadsheet, get_tables_bioc
@@ -74,7 +69,7 @@ def __extract_word_data(locations=None, file=None):
         word_locations = [locations[x]["locations"] for x in word_extensions if locations[x]["locations"]]
         temp = []
         for x in word_locations:
-            if not type(x) == list:
+            if not isinstance(x, list):
                 temp.append(x)
             else:
                 for y in x:
@@ -225,15 +220,11 @@ def __extract_pdf_data(locations=None, file=None):
                     with open(F"{os.path.join(base_dir, file_name + '_tables.json')}", "w+",
                               encoding="utf-8") as tables_out:
                         json.dump(tables, tables_out, indent=4)
-                text, images, out_meta, tables, file = None, None, None, None, None
                 return True, ""
             else:
-                text, images, out_meta, tables, file = None, None, None, None, None
                 return False, ""
         except Exception as ex:
-            trace = traceback.format_exc()
             print(ex)
-            text, images, out_meta, tables, file = None, None, None, None, None
             return False, ""
 
 
@@ -381,7 +372,7 @@ def __extract_powerpoint_data(locations=None, file=None):
                 return True
             else:
                 return False
-        except Exception as ex:
+        except Exception:
             return False
 
 def retry_rmtree(path, retries=5, delay=1):
@@ -393,7 +384,7 @@ def retry_rmtree(path, retries=5, delay=1):
             time.sleep(delay)  # Wait before retrying
         except FileNotFoundError:
             return  # Directory already removed
-        except Exception as e:
+        except Exception:
             return
 
 def process_and_update_rar(archive_path):
@@ -469,7 +460,7 @@ def process_and_update_zip(archive_path):
 
                         if os.path.exists(new_file_path):
                             # Ensure file is closed before moving
-                            with open(new_file_path, 'r') as f:
+                            with open(new_file_path, 'r'):
                                 pass  # Just open and close it to release lock
                             shutil.move(new_file_path, output_path)
                             file_output_success = True
@@ -550,8 +541,6 @@ def process_archive_file(locations=None, file=None):
     if locations:
         pass
     elif file:
-        base_dir, file_name = os.path.split(file)
-        extensions = {}
         file_extension = file[file.rfind('.'):].lower()
         if file_extension == ".rar":
             success, failed_files = process_and_update_rar(file)
@@ -602,9 +591,7 @@ def __extract_unknown_file_text(locations=None, file=None):
                 success = __extract_powerpoint_data(file=file)
                 log_identified_file_type(base_dir, file, "Presentation")
         except Exception as ex:
-            trace = traceback.format_exc()
             print(ex)
-            text, images, out_meta, tables, file = None, None, None, None, None
             return False, [], ""
     return success, failed_files, reason
 

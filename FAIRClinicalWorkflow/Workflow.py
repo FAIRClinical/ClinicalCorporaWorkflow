@@ -465,9 +465,9 @@ def __clear_processed_files(set_path):
 
 
 def test_sentence_splitting():
-    set_no = "080"
+    # set_no = "080"
     # input_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
-    input_path = Path(f"Output\\PMC080XXXXX_json_ascii\\PMC080XXXXX_json_ascii")
+    input_path = Path("Output\\PMC080XXXXX_json_ascii\\PMC080XXXXX_json_ascii")
     for file in input_path.rglob("*split_bioc.json"):
         os.unlink(file)
     for file in input_path.rglob("*.json"):
@@ -496,9 +496,14 @@ def run():
         return
     set_args()
     if args.set_no:
-        assert isinstance(args.set_no, str), "The set number must be a string."
-        assert len(args.set_no) == 3, "The set number must be 3 digits long."
-        assert int(args.set_no), "The set number must be a valid number."
+        if not isinstance(args.set_no, str):
+            raise TypeError("The set number must be a string.")
+        elif len(args.set_no) != 3:
+            raise ValueError("The set number must be 3 digits long.")
+        try:
+            int(args.set_no) 
+        except Exception:
+            raise ValueError("The set number must be a valid number.")
         start = datetime.now()
         print("Starting the clinical corpora specific set process at " + str(start))
         process_specific_set(args.set_no)

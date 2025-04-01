@@ -1,7 +1,6 @@
 import os
 
 import requests
-import json
 
 
 def get_ocr_results(file):
