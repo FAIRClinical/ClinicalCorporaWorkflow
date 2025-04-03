@@ -3,6 +3,7 @@ import os
 import logging
 import shutil
 import tarfile
+import time
 import ftplib
 import argparse
 import re
@@ -19,6 +20,7 @@ os.chdir(Path(__file__).parent)
 # FTP connection
 ftp_server = "ftp.ncbi.nlm.nih.gov"
 ftp_directory = "/pub/wilbur/BioC-PMC/"
+ftp_retries = 0
 
 logging.basicConfig(filename="Workflow_log.txt", filemode="a",
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -250,10 +252,22 @@ def update_local_archive_versions(archive_name, date_modified, new_archive=False
         f_out.truncate()
         f_out.writelines(output)
 
-def process_specific_set(set_no):
-    with ftplib.FTP(ftp_server) as ftp:
-        ftp.login()
-        files = list_archives_with_dates(ftp, ftp_directory)
+def process_specific_set(set_no: str):
+    try:
+        with ftplib.FTP(ftp_server) as ftp:
+            ftp.login()
+            files = list_archives_with_dates(ftp, ftp_directory)
+    except TimeoutError:
+        global ftp_retries
+        if ftp_retries > 2:
+            logger.error("Timeout error: Unable to connect to the FTP server after 3 retries.")
+            exit("Terminating workflow: Unable to connect to the FTP server after 3 retries.")
+        else:
+            logger.error("Timeout error: Unable to connect to the FTP server, retrying in 3 sec.")
+            time.sleep(3)
+            ftp_retries += 1
+            process_specific_set(set_no)
+            return
     file_found = False
     for filename, date_modified in files:
         if filename.startswith(F"PMC{set_no}"):
@@ -327,7 +341,7 @@ def check_pmc_bioc_updates():
     print("Finished updating the clinical corpora.")
 
 
-def log_unprocessed_supplementary_file(file, archived_file, reason, log_path):
+def log_unprocessed_supplementary_file(file: str, archived_file, reason, log_path):
     supplementary_dir = str(Path(file).parts[2])
     pmc = supplementary_dir.replace("_supplementary", "")
     file_name = str(Path(file).parts[-1])
@@ -337,7 +351,7 @@ def log_unprocessed_supplementary_file(file, archived_file, reason, log_path):
         f_out.write(f"{supplementary_dir}\t{pmc}\t{file_name}\t{archived_file}\t{reason}\n")
 
 
-def clear_unwanted_articles(input_dir):
+def clear_unwanted_articles(input_dir: str):
     # Define the path for the 'extra' folder
     extra_dir = os.path.join("Output", os.path.split(input_dir)[-1] + "_unwanted_articles")
 
@@ -366,7 +380,7 @@ def clear_unwanted_articles(input_dir):
     print(f"All unwanted articles moved to: {extra_dir}")
 
 
-def clear_empty_folders(output_path):
+def clear_empty_folders(output_path: str):
     """
     Remove empty directories in the given path recursively.
 
@@ -387,7 +401,7 @@ def clear_empty_folders(output_path):
                 pass
 
 
-def archive_final_output(path):
+def archive_final_output(path: str):
     """
     Compress a directory into a .tar.gz archive and remove the original directory.
 
@@ -422,7 +436,7 @@ def archive_final_output(path):
             continue
 
 
-def __identify_missing_processed_files(set_no, file_extensions=None):
+def __identify_missing_processed_files(set_no: str, file_extensions=None):
     set_path = Path(f"Output\\PMC{set_no}XXXXX_json_ascii_supplementary")
     raw, processed = [], []
     for file in set_path.rglob("*"):
@@ -445,7 +459,7 @@ def __identify_missing_processed_files(set_no, file_extensions=None):
         print(F"Unprocessed file: {unprocessed_file}")
 
 
-def __re_process_supplementary_set(set_no):
+def __re_process_supplementary_set(set_no: str):
     sets = ["000", "030", "035", "040", "045", "050", "055", "060", "065", "070", "075", "080", "085", "090", "095", "100", "105"]
     for old_set in sets:
         set_path = Path(f"D:\\Backups\\old_v2\\PMC{old_set}XXXXX_json_ascii_supplementary")
@@ -458,7 +472,7 @@ def __re_process_supplementary_set(set_no):
                 process_supplementary_files([str(file.absolute())])
 
 
-def __clear_processed_files(set_path):
+def __clear_processed_files(set_path: Path):
     for file in set_path.rglob("*"):
         if file.is_dir() and file.name == "Processed":
             shutil.rmtree(file)
