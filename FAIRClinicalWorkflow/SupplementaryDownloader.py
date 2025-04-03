@@ -13,6 +13,7 @@ import logging
 
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
+import urllib3
 
 from .MovieRemoval import video_extensions
 
@@ -83,6 +84,12 @@ def download_supplementary_file(link_address, new_dir, pmc_id, parent_dir, sessi
             print(F"Invalid URL: {link_address}")
             log_failed_download(new_dir, pmc_id, link_address, F"Invalid URL: {iu}")
             refs_log.error(F"{pmc_id} - Invalid URL: {link_address}")
+            return False
+        except urllib3.exceptions.MaxRetryError as mre:
+            logging.error(F"Max retries exceeded for {link_address}:\n{mre}")
+            print(F"Max retries exceeded for {link_address}:\n{mre}")
+            log_failed_download(new_dir, pmc_id, link_address, F"Max retries exceeded: {mre}")
+            refs_log.error(F"{pmc_id} - Max retries exceeded for {link_address}")
             return False
     try:
         if file_response and file_response.ok:
