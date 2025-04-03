@@ -253,12 +253,12 @@ def update_local_archive_versions(archive_name, date_modified, new_archive=False
         f_out.writelines(output)
 
 def process_specific_set(set_no: str):
+    global ftp_retries
     try:
         with ftplib.FTP(ftp_server) as ftp:
             ftp.login()
             files = list_archives_with_dates(ftp, ftp_directory)
     except TimeoutError:
-        global ftp_retries
         if ftp_retries > 2:
             logger.error("Timeout error: Unable to connect to the FTP server after 3 retries.")
             exit("Terminating workflow: Unable to connect to the FTP server after 3 retries.")
@@ -268,6 +268,8 @@ def process_specific_set(set_no: str):
             ftp_retries += 1
             process_specific_set(set_no)
             return
+    # reset retry counter on successful connection
+    ftp_retries = 0
     file_found = False
     for filename, date_modified in files:
         if filename.startswith(F"PMC{set_no}"):
